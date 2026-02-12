@@ -1,0 +1,133 @@
+{
+  "identity": {
+    "name": "Resell Corner - The Arbitrage Terminal",
+    "tone": "Tactical, Precision, High-Velocity, Profit-Driven",
+    "archetype": "The Performance Pro",
+    "core_principles": [
+      "Data Density over Fluff",
+      "High Contrast for Quick Scanning",
+      "Motion conveys Meaning (not decoration)",
+      "Dark Mode Default for Pro Focus"
+    ]
+  },
+  "typography": {
+    "primary_font": "Manrope",
+    "heading_font": "Chivo",
+    "mono_font": "JetBrains Mono",
+    "scale": {
+      "h1": "text-4xl md:text-5xl lg:text-6xl font-black tracking-tight",
+      "h2": "text-3xl md:text-4xl font-bold tracking-tight",
+      "h3": "text-2xl font-bold tracking-tight",
+      "body": "text-base font-medium leading-relaxed",
+      "small": "text-sm font-medium text-muted-foreground",
+      "mono": "font-mono text-sm tracking-wide"
+    }
+  },
+  "colors": {
+    "background": {
+      "default": "bg-zinc-950",
+      "surface": "bg-zinc-900",
+      "surface_hover": "hover:bg-zinc-800/50",
+      "overlay": "bg-black/60 backdrop-blur-xl"
+    },
+    "text": {
+      "primary": "text-zinc-50",
+      "secondary": "text-zinc-400",
+      "muted": "text-zinc-500",
+      "accent": "text-lime-400"
+    },
+    "border": {
+      "default": "border-zinc-800",
+      "active": "border-lime-500/50",
+      "subtle": "border-zinc-800/50"
+    },
+    "brand": {
+      "primary": "bg-lime-400 text-zinc-950 hover:bg-lime-500",
+      "secondary": "bg-zinc-100 text-zinc-900 hover:bg-zinc-200",
+      "accent": "bg-orange-500 text-white hover:bg-orange-600",
+      "destructive": "bg-red-500/10 text-red-500 hover:bg-red-500/20"
+    },
+    "status": {
+      "success": "text-lime-400",
+      "warning": "text-orange-400",
+      "error": "text-red-400",
+      "info": "text-blue-400"
+    }
+  },
+  "layout": {
+    "spacing": {
+      "container": "container mx-auto px-4 md:px-6 py-8",
+      "section": "py-12 md:py-24",
+      "card_padding": "p-6"
+    },
+    "grid": {
+      "dashboard": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4",
+      "comparison": "grid grid-cols-1 lg:grid-cols-12 gap-6"
+    },
+    "border_radius": "rounded-lg"
+  },
+  "components": {
+    "cards": {
+      "style": "bg-zinc-900 border border-zinc-800 shadow-none hover:border-zinc-700 transition-all duration-300",
+      "active_effect": "relative overflow-hidden group hover:shadow-[0_0_20px_-10px_rgba(163,230,53,0.3)]"
+    },
+    "buttons": {
+      "primary": "bg-lime-400 text-black font-bold hover:bg-lime-500 shadow-[0_0_10px_rgba(163,230,53,0.2)]",
+      "ghost": "hover:bg-zinc-800 text-zinc-300 hover:text-white"
+    },
+    "inputs": {
+      "style": "bg-zinc-950 border-zinc-800 focus:border-lime-500/50 focus:ring-1 focus:ring-lime-500/20 transition-all placeholder:text-zinc-600"
+    },
+    "navigation": {
+      "style": "fixed top-0 w-full z-50 border-b border-white/5 bg-zinc-950/80 backdrop-blur-md supports-[backdrop-filter]:bg-zinc-950/60"
+    }
+  },
+  "visual_enhancers": {
+    "tracing_beam": "Animate a glowing gradient border around active cards.",
+    "dot_grid": "Use a subtle dot grid background (bg-dot-white/[0.1]) for dashboard areas to give a technical feel.",
+    "glass_panel": "Use backdrop-blur-xl with bg-zinc-900/70 for floating panels and modals.",
+    "noise": "Add a subtle noise texture overlay (opacity 0.03) to the entire app for a tactile feel."
+  },
+  "motion": {
+    "hover": "transition-all duration-200 ease-out hover:-translate-y-1",
+    "fade_in": "animate-in fade-in zoom-in-95 duration-300",
+    "list_stagger": "stagger-children"
+  },
+  "image_urls": {
+    "hero_background": "https://images.unsplash.com/photo-1762279388988-3f8abcc7dca2?crop=entropy&cs=srgb&fm=jpg&q=85",
+    "sneakers": [
+      "https://images.unsplash.com/photo-1608551279839-84c7ca889b80?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "https://images.unsplash.com/photo-1561348613-6d08019ace21?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "https://images.unsplash.com/photo-1630828768689-12914561ee93?crop=entropy&cs=srgb&fm=jpg&q=85"
+    ],
+    "electronics": [
+      "https://images.unsplash.com/photo-1607853202273-797f1c22a38e?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "https://images.unsplash.com/photo-1580234797602-22c37b2a6230?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "https://images.unsplash.com/photo-1592840496694-26d035b52b48?crop=entropy&cs=srgb&fm=jpg&q=85"
+    ],
+    "watches": [
+      "https://images.unsplash.com/photo-1600003014637-ff82a275e191?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "https://images.unsplash.com/photo-1600003014755-ba31aa59c4b6?crop=entropy&cs=srgb&fm=jpg&q=85"
+    ],
+    "logistics": [
+      "https://images.unsplash.com/photo-1601897690942-bcacbad33e55?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "https://images.unsplash.com/photo-1678182451047-196f22a4143e?crop=entropy&cs=srgb&fm=jpg&q=85"
+    ]
+  },
+  "instructions_to_main_agent": [
+    "1. THEME SETUP: Force Dark Mode by default. In `tailwind.config.js`, ensure `darkMode: 'class'` is set. In `index.css`, set the default root variables to the dark values (zinc-950 background).",
+    "2. FONT SETUP: Import 'Chivo', 'Manrope', and 'JetBrains Mono' from Google Fonts in `index.css`.",
+    "3. COMPONENT OVERRIDES: Go through `src/components/ui` and strip out the default 'border-border' and 'bg-background' where it makes sense. Replace with 'border-zinc-800' and 'bg-zinc-900' for a sharper look.",
+    "4. DASHBOARD LAYOUT: Use a 'Bento Grid' approach. Do not just stack cards vertically. Create a masonry-like feel for the main dashboard.",
+    "5. CHARTS: Use Recharts. Style the tooltip to be a dark glass panel (`bg-zinc-900/90 backdrop-blur border border-zinc-800`). Use Acid Green (`#a3e635`) for profit lines.",
+    "6. TABLES: The 'Results' page is key. The table must be high-density. Use `text-sm` or `text-xs`. Add hover effects on rows (`hover:bg-zinc-900`). Stick the header.",
+    "7. SEARCH: The search bar should be prominent (Hero section). Make it large (`h-14`), with a glass effect.",
+    "8. ALERTS: Use the 'Sonner' toast library for notifications. Style them with a thin Acid Green border for success."
+  ],
+  "universal_guidelines": [
+    "Do not use gradients for the main background. Use solid Zinc-950.",
+    "Do not center-align everything. Use left-align for data and text to keep it scannable.",
+    "Use 'data-testid' on all interactive elements.",
+    "Ensure 3:1 contrast ratio for all text."
+  ]
+}
