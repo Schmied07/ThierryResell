@@ -41,8 +41,21 @@ const SearchResults = () => {
       navigate("/dashboard");
       return;
     }
-    generateMockPriceHistory();
-  }, [results]);
+    // Generate mock price history
+    const data = [];
+    const basePrice = results?.average_price || 100;
+    for (let i = 30; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      data.push({
+        date: date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }),
+        price: basePrice * (0.9 + Math.random() * 0.2),
+        amazon: basePrice * (0.85 + Math.random() * 0.3),
+        ebay: basePrice * (0.8 + Math.random() * 0.4),
+      });
+    }
+    setPriceHistory(data);
+  }, [results, navigate]);
 
   const generateMockPriceHistory = () => {
     const data = [];
