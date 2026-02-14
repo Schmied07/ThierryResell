@@ -345,6 +345,9 @@ class BackendTester:
         # Test API consistency
         test_results["api_structure_consistency"] = self.test_api_structure_consistency()
         
+        # Test mock data functionality
+        test_results["mock_data_availability"] = self.test_mock_data_availability()
+        
         # Summary
         passed = sum(1 for result in test_results.values() if result)
         total = len(test_results)
