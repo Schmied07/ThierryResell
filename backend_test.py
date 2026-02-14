@@ -272,6 +272,51 @@ class BackendTester:
         self.log(f"✅ API structure consistency verified")
         return True
     
+    def test_mock_data_availability(self) -> bool:
+        """Test that mock data is available when no API keys configured"""
+        self.log("=== Testing Mock Data Availability ===")
+        
+        # Check if API keys are set (should be empty for new test user)
+        response = self.make_request("GET", "/settings/api-keys")
+        if not response["success"]:
+            self.log(f"❌ Cannot check API keys status", "ERROR")
+            return False
+        
+        api_keys_data = response["data"]
+        if api_keys_data.get("keepa_api_key_set", True) or api_keys_data.get("google_api_key_set", True):
+            self.log(f"⚠️  API keys are configured, mock data test may not apply", "WARN")
+        
+        # Test text search which should use mock data
+        response = self.make_request("POST", "/search/text", {
+            "query": "iPhone 15",
+            "search_type": "text"
+        })
+        
+        if not response["success"]:
+            self.log(f"❌ Text search failed", "ERROR")
+            return False
+        
+        search_data = response["data"]
+        
+        # Check if keepa_data exists and contains mock_data flag
+        keepa_data = search_data.get("keepa_data", {})
+        if not keepa_data:
+            self.log(f"❌ No keepa_data in search result", "ERROR")
+            return False
+        
+        if keepa_data.get("mock_data") != True:
+            self.log(f"❌ Expected mock_data=True, got {keepa_data.get('mock_data')}", "ERROR")
+            return False
+        
+        # Verify mock Amazon reference price exists
+        amazon_reference_price = search_data.get("amazon_reference_price")
+        if not amazon_reference_price or not isinstance(amazon_reference_price, (int, float)):
+            self.log(f"❌ Mock Amazon reference price missing or invalid", "ERROR")
+            return False
+        
+        self.log(f"✅ Mock data working correctly - Amazon price: €{amazon_reference_price}")
+        return True
+    
     def run_all_tests(self):
         """Run all backend tests"""
         self.log("🚀 Starting Backend Catalog Comparison Tests")
