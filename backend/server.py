@@ -1183,12 +1183,76 @@ async def get_catalog_stats(user: dict = Depends(get_current_user)):
         'categories': sorted(categories)
     }
 
+def generate_mock_catalog_prices(product: dict) -> dict:
+    """Generate realistic mock prices for catalog comparison when no API keys are set.
+    
+    Logic:
+    - Amazon price: typically 2x-3.5x the supplier price (retail markup)
+    - Google lowest price: somewhere between supplier and Amazon (varies)
+    """
+    supplier_price = product['supplier_price_eur']
+    
+    # Use product GTIN hash for consistent pricing
+    hash_val = sum(ord(c) for c in str(product.get('gtin', '')))
+    random.seed(hash_val)
+    
+    # Amazon price: 1.8x to 3.5x supplier price (retail markup)
+    amazon_multiplier = random.uniform(1.8, 3.5)
+    amazon_price = round(supplier_price * amazon_multiplier, 2)
+    
+    # Google lowest price: between 0.7x and 1.1x Amazon price
+    # Sometimes cheaper, sometimes similar to Amazon
+    google_multiplier = random.uniform(0.70, 1.10)
+    google_lowest_price = round(amazon_price * google_multiplier, 2)
+    
+    random.seed()  # Reset seed
+    
+    return {
+        'amazon_price': amazon_price,
+        'google_lowest_price': google_lowest_price,
+        'is_mock': True
+    }
+
+
+def extract_price_from_text(text: str) -> Optional[float]:
+    """Extract price from text string (supports €, EUR formats)"""
+    import re
+    # Match patterns like: 29,99€, 29.99€, €29.99, 29,99 EUR, etc.
+    patterns = [
+        r'(\d+[.,]\d{2})\s*€',
+        r'€\s*(\d+[.,]\d{2})',
+        r'(\d+[.,]\d{2})\s*EUR',
+        r'EUR\s*(\d+[.,]\d{2})',
+        r'(\d+[.,]\d{2})\s*eur',
+    ]
+    
+    prices = []
+    for pattern in patterns:
+        matches = re.findall(pattern, text)
+        for match in matches:
+            try:
+                price = float(match.replace(',', '.'))
+                if 0.01 < price < 100000:  # Sanity check
+                    prices.append(price)
+            except ValueError:
+                continue
+    
+    return min(prices) if prices else None
+
+
 @api_router.post("/catalog/compare/{product_id}")
 async def compare_catalog_product(
     product_id: str,
     user: dict = Depends(get_current_user)
 ):
-    """Compare a single catalog product with Amazon and Google prices"""
+    """Compare a single catalog product: Keepa (Amazon) + Google (lowest price online).
+    
+    Calculates:
+    - Amazon price (selling price via Keepa)
+    - Google lowest price (cheapest online)
+    - Cheapest source between supplier and Google
+    - Amazon margin = Amazon price - buy price - Amazon fees (15% TTC)
+    """
     product = await db.catalog_products.find_one({
         'id': product_id,
         'user_id': user['id']
@@ -1202,19 +1266,23 @@ async def compare_catalog_product(
     api_keys = user_doc.get('api_keys', {})
     keepa_key = api_keys.get('keepa_api_key')
     google_key = api_keys.get('google_api_key')
+    google_cx = api_keys.get('google_search_engine_id')
     
+    supplier_price = product['supplier_price_eur']
     amazon_price = None
-    google_price = None
+    google_lowest_price = None
+    is_mock_data = False
     
-    # Search on Amazon via Keepa using GTIN/EAN
+    # ==================== KEEPA API (Amazon price) ====================
     if keepa_key:
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
+            async with httpx.AsyncClient() as http_client:
+                # Search by GTIN/EAN on Amazon.fr (domain 4)
+                response = await http_client.get(
                     "https://api.keepa.com/search",
                     params={
                         "key": keepa_key,
-                        "domain": 3,  # Amazon.fr
+                        "domain": 4,  # Amazon.fr
                         "type": "product",
                         "term": product['gtin']
                     },
@@ -1224,70 +1292,179 @@ async def compare_catalog_product(
                     data = response.json()
                     if data.get('products') and len(data['products']) > 0:
                         keepa_product = data['products'][0]
-                        # Keepa prices are in cents
-                        current_price = keepa_product.get('stats', {}).get('current')
-                        if current_price and len(current_price) > 0 and current_price[0]:
-                            amazon_price = current_price[0] / 100.0
-                            logger.info(f"Found Amazon price for {product['name']}: €{amazon_price}")
+                        # Keepa stores prices in cents
+                        stats = keepa_product.get('stats', {})
+                        current_prices = stats.get('current', [])
+                        # Index 0 = Amazon price, Index 1 = New 3rd party price
+                        if current_prices and len(current_prices) > 0:
+                            # Try Amazon price first (index 0)
+                            if current_prices[0] and current_prices[0] > 0:
+                                amazon_price = current_prices[0] / 100.0
+                            # Fallback to 3rd party new price (index 1)
+                            elif len(current_prices) > 1 and current_prices[1] and current_prices[1] > 0:
+                                amazon_price = current_prices[1] / 100.0
+                        logger.info(f"Keepa Amazon price for {product['name']}: €{amazon_price}")
         except Exception as e:
             logger.warning(f"Keepa API error for {product['gtin']}: {e}")
     
-    # Search on Google Shopping using product name + brand
-    if google_key:
+    # ==================== GOOGLE CUSTOM SEARCH (lowest price online) ====================
+    if google_key and google_cx:
         try:
-            search_query = f"{product['brand']} {product['name']}"
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
+            search_query = f"{product['brand']} {product['name']} prix"
+            async with httpx.AsyncClient() as http_client:
+                response = await http_client.get(
                     "https://www.googleapis.com/customsearch/v1",
                     params={
                         "key": google_key,
-                        "cx": api_keys.get('google_search_engine_id'),
+                        "cx": google_cx,
                         "q": search_query,
-                        "num": 5
+                        "num": 10
                     },
                     timeout=30
                 )
                 if response.status_code == 200:
                     data = response.json()
-                    # Extract price from Google Shopping results (simplified)
-                    # In production, you'd parse structured data more carefully
                     items = data.get('items', [])
-                    if items:
-                        # Mock: use Amazon price as base for Google price with slight variation
-                        if amazon_price:
-                            google_price = round(amazon_price * random.uniform(0.95, 1.05), 2)
-                            logger.info(f"Estimated Google price for {product['name']}: €{google_price}")
+                    found_prices = []
+                    
+                    for item in items:
+                        # Try to extract price from snippet
+                        snippet = item.get('snippet', '')
+                        title = item.get('title', '')
+                        
+                        # Check pagemap for structured pricing data
+                        pagemap = item.get('pagemap', {})
+                        offers = pagemap.get('offer', [])
+                        for offer in offers:
+                            price_str = offer.get('price', '')
+                            try:
+                                price = float(price_str.replace(',', '.'))
+                                if 0.01 < price < 100000:
+                                    found_prices.append(price)
+                            except (ValueError, AttributeError):
+                                pass
+                        
+                        # Try product structured data
+                        products_data = pagemap.get('product', [])
+                        for prod in products_data:
+                            price_str = prod.get('price', '')
+                            try:
+                                price = float(price_str.replace(',', '.'))
+                                if 0.01 < price < 100000:
+                                    found_prices.append(price)
+                            except (ValueError, AttributeError):
+                                pass
+                        
+                        # Extract from snippet text
+                        snippet_price = extract_price_from_text(snippet)
+                        if snippet_price:
+                            found_prices.append(snippet_price)
+                        
+                        title_price = extract_price_from_text(title)
+                        if title_price:
+                            found_prices.append(title_price)
+                    
+                    if found_prices:
+                        google_lowest_price = min(found_prices)
+                        logger.info(f"Google lowest price for {product['name']}: €{google_lowest_price} (from {len(found_prices)} prices found)")
         except Exception as e:
             logger.warning(f"Google API error for {product['name']}: {e}")
     
-    # Calculate best price and margin
-    prices = [p for p in [amazon_price, google_price] if p is not None]
-    best_price = min(prices) if prices else None
-    margin = round(best_price - product['supplier_price_eur'], 2) if best_price else None
-    margin_percentage = round((margin / product['supplier_price_eur']) * 100, 2) if margin else None
+    # ==================== MOCK DATA FALLBACK ====================
+    if amazon_price is None and google_lowest_price is None:
+        mock_prices = generate_mock_catalog_prices(product)
+        amazon_price = mock_prices['amazon_price']
+        google_lowest_price = mock_prices['google_lowest_price']
+        is_mock_data = True
+        logger.info(f"Using mock prices for {product['name']}: Amazon=€{amazon_price}, Google=€{google_lowest_price}")
+    elif amazon_price is None:
+        # Have Google but not Amazon - estimate Amazon from Google
+        amazon_price = round(google_lowest_price * random.uniform(1.0, 1.15), 2)
+        is_mock_data = True
+    elif google_lowest_price is None:
+        # Have Amazon but not Google - estimate Google from Amazon
+        google_lowest_price = round(amazon_price * random.uniform(0.85, 1.05), 2)
+        is_mock_data = True
     
-    # Update product in database
+    # ==================== CALCULATE COMPARISONS ====================
+    
+    # Amazon fees (15% TTC)
+    amazon_fees = calculate_amazon_fees(amazon_price)
+    
+    # Cheapest source between supplier and Google
+    if google_lowest_price <= supplier_price:
+        cheapest_source = "google"
+        cheapest_buy_price = google_lowest_price
+    else:
+        cheapest_source = "supplier"
+        cheapest_buy_price = supplier_price
+    
+    # Margin if buying from SUPPLIER and selling on Amazon
+    supplier_margin = calculate_margin(amazon_price, supplier_price, amazon_fees)
+    
+    # Margin if buying from GOOGLE and selling on Amazon
+    google_margin = calculate_margin(amazon_price, google_lowest_price, amazon_fees)
+    
+    # Best margin (from cheapest source)
+    best_margin = calculate_margin(amazon_price, cheapest_buy_price, amazon_fees)
+    
+    # Price differences
+    google_vs_amazon_diff = round(google_lowest_price - amazon_price, 2)  # negative = Google cheaper
+    supplier_vs_google_diff = round(supplier_price - google_lowest_price, 2)  # negative = supplier cheaper
+    
+    # Update product in database with all comparison data
+    update_data = {
+        'amazon_price_eur': amazon_price,
+        'google_lowest_price_eur': google_lowest_price,
+        'cheapest_source': cheapest_source,
+        'cheapest_buy_price_eur': cheapest_buy_price,
+        'amazon_fees_eur': amazon_fees,
+        'amazon_margin_eur': best_margin['margin_eur'],
+        'amazon_margin_percentage': best_margin['margin_percentage'],
+        'supplier_margin_eur': supplier_margin['margin_eur'],
+        'supplier_margin_percentage': supplier_margin['margin_percentage'],
+        'google_margin_eur': google_margin['margin_eur'],
+        'google_margin_percentage': google_margin['margin_percentage'],
+        'google_vs_amazon_diff_eur': google_vs_amazon_diff,
+        'supplier_vs_google_diff_eur': supplier_vs_google_diff,
+        # Legacy fields
+        'google_price_eur': google_lowest_price,
+        'best_price_eur': cheapest_buy_price,
+        'margin_eur': best_margin['margin_eur'],
+        'margin_percentage': best_margin['margin_percentage'],
+        'last_compared_at': datetime.now(timezone.utc).isoformat()
+    }
+    
     await db.catalog_products.update_one(
         {'id': product_id},
-        {'$set': {
-            'amazon_price_eur': amazon_price,
-            'google_price_eur': google_price,
-            'best_price_eur': best_price,
-            'margin_eur': margin,
-            'margin_percentage': margin_percentage,
-            'last_compared_at': datetime.now(timezone.utc).isoformat()
-        }}
+        {'$set': update_data}
     )
     
     return {
         'product_id': product_id,
         'product_name': product['name'],
-        'supplier_price_eur': product['supplier_price_eur'],
+        'gtin': product['gtin'],
+        'brand': product['brand'],
+        'is_mock_data': is_mock_data,
+        # Prices
+        'supplier_price_eur': supplier_price,
         'amazon_price_eur': amazon_price,
-        'google_price_eur': google_price,
-        'best_price_eur': best_price,
-        'margin_eur': margin,
-        'margin_percentage': margin_percentage,
+        'google_lowest_price_eur': google_lowest_price,
+        # Comparison
+        'cheapest_source': cheapest_source,
+        'cheapest_buy_price_eur': cheapest_buy_price,
+        'amazon_fees_eur': amazon_fees,
+        'amazon_fee_percentage': AMAZON_FEE_PERCENTAGE * 100,
+        # Margins
+        'supplier_margin_eur': supplier_margin['margin_eur'],
+        'supplier_margin_percentage': supplier_margin['margin_percentage'],
+        'google_margin_eur': google_margin['margin_eur'],
+        'google_margin_percentage': google_margin['margin_percentage'],
+        'best_margin_eur': best_margin['margin_eur'],
+        'best_margin_percentage': best_margin['margin_percentage'],
+        # Differences
+        'google_vs_amazon_diff_eur': google_vs_amazon_diff,
+        'supplier_vs_google_diff_eur': supplier_vs_google_diff,
         'compared_at': datetime.now(timezone.utc).isoformat()
     }
 
