@@ -1159,15 +1159,21 @@ async def get_catalog_stats(user: dict = Depends(get_current_user)):
         'last_compared_at': {'$ne': None}
     })
     
-    # Calculate margins
+    # Calculate margins using new fields
     products_with_margin = await db.catalog_products.find({
         'user_id': user['id'],
-        'margin_eur': {'$ne': None}
-    }, {'_id': 0, 'margin_eur': 1, 'margin_percentage': 1}).to_list(None)
+        'amazon_margin_eur': {'$ne': None}
+    }, {'_id': 0, 'amazon_margin_eur': 1, 'amazon_margin_percentage': 1, 
+        'supplier_margin_eur': 1, 'supplier_margin_percentage': 1,
+        'margin_eur': 1, 'margin_percentage': 1}).to_list(None)
     
-    total_margin = sum(p.get('margin_eur', 0) for p in products_with_margin)
-    avg_margin_percentage = sum(p.get('margin_percentage', 0) for p in products_with_margin) / len(products_with_margin) if products_with_margin else 0
-    best_margin = max((p.get('margin_eur', 0) for p in products_with_margin), default=0)
+    total_margin = sum(p.get('amazon_margin_eur', p.get('margin_eur', 0)) for p in products_with_margin)
+    margins_pct = [p.get('amazon_margin_percentage', p.get('margin_percentage', 0)) for p in products_with_margin]
+    avg_margin_percentage = sum(margins_pct) / len(margins_pct) if margins_pct else 0
+    best_margin = max((p.get('amazon_margin_eur', p.get('margin_eur', 0)) for p in products_with_margin), default=0)
+    
+    # Count profitable products
+    profitable_products = sum(1 for p in products_with_margin if p.get('amazon_margin_eur', p.get('margin_eur', 0)) > 0)
     
     # Get brands and categories
     brands = await db.catalog_products.distinct('brand', {'user_id': user['id']})
@@ -1176,9 +1182,11 @@ async def get_catalog_stats(user: dict = Depends(get_current_user)):
     return {
         'total_products': total_products,
         'compared_products': compared_products,
+        'profitable_products': profitable_products,
         'total_potential_margin': round(total_margin, 2),
         'avg_margin_percentage': round(avg_margin_percentage, 2),
         'best_opportunity_margin': round(best_margin, 2),
+        'amazon_fee_percentage': AMAZON_FEE_PERCENTAGE * 100,
         'brands': sorted(brands),
         'categories': sorted(categories)
     }
