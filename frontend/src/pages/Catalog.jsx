@@ -768,7 +768,7 @@ const ProductComparisonDetail = ({ product, compareResult }) => {
             <ShoppingCart className="w-5 h-5 text-amber-400" />
             <h4 className="text-white font-semibold text-sm">Prix Amazon (Vente)</h4>
           </div>
-          <p className="text-3xl font-bold text-amber-400">{amazonPrice?.toFixed(2)}€</p>
+          <p className="text-3xl font-bold text-amber-400">{amazonPrice ? `${amazonPrice.toFixed(2)}€` : <span className="text-zinc-500 text-lg">Non trouvé</span>}</p>
           <p className="text-zinc-500 text-xs mt-1">Prix de vente sur Amazon</p>
           {amazonFees && (
             <div className="mt-3 pt-3 border-t border-zinc-700/50">
