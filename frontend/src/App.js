@@ -12,6 +12,7 @@ import Suppliers from "./pages/Suppliers";
 import Alerts from "./pages/Alerts";
 import Favorites from "./pages/Favorites";
 import Settings from "./pages/Settings";
+import Catalog from "./pages/Catalog";
 
 // Components
 import Navbar from "./components/Navbar";
