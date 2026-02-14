@@ -67,6 +67,16 @@ const Catalog = () => {
     }
   };
 
+  const fetchApiKeyStatus = async () => {
+    try {
+      const response = await api.get("/settings/api-keys");
+      const { keepa_api_key_set, google_api_key_set } = response.data;
+      setApiKeysConfigured(keepa_api_key_set || google_api_key_set);
+    } catch (error) {
+      console.error("Error checking API keys:", error);
+    }
+  };
+
   const fetchProducts = async () => {
     setLoading(true);
     try {
