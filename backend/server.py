@@ -481,55 +481,168 @@ async def delete_favorite(favorite_id: str, user: dict = Depends(get_current_use
 
 # ==================== SEARCH ROUTES ====================
 
-def generate_mock_comparisons(product_name: str, suppliers: List[dict]) -> List[PriceComparisonResult]:
-    """Generate mock price comparisons for demo purposes"""
-    base_price = random.uniform(20, 200)
+def generate_mock_comparisons(product_name: str, suppliers: List[dict], category: str = None, amazon_price: float = None) -> List[PriceComparisonResult]:
+    """Generate mock price comparisons for demo purposes with intelligent category matching"""
     comparisons = []
     
-    # Default suppliers if user has none
+    # Filter suppliers by category if specified
+    if category and category != "Général":
+        # Matching suppliers (same category)
+        matching_suppliers = [s for s in suppliers if s.get('category', '').lower() == category.lower()]
+        # Also include suppliers with no category
+        no_category_suppliers = [s for s in suppliers if not s.get('category')]
+        relevant_suppliers = matching_suppliers + no_category_suppliers
+    else:
+        relevant_suppliers = suppliers
+    
+    # Default suppliers if user has none or no match
     default_suppliers = [
-        {"name": "Amazon", "url": "https://amazon.com"},
-        {"name": "eBay", "url": "https://ebay.com"},
-        {"name": "AliExpress", "url": "https://aliexpress.com"},
-        {"name": "Alibaba", "url": "https://alibaba.com"},
+        {"name": "Amazon", "url": "https://amazon.fr", "is_default": True},
+        {"name": "Cdiscount", "url": "https://cdiscount.com", "is_default": True},
+        {"name": "Fnac", "url": "https://fnac.com", "is_default": True},
+        {"name": "Rakuten", "url": "https://fr.rakuten.com", "is_default": True},
     ]
     
-    all_suppliers = suppliers if suppliers else default_suppliers
+    # Use amazon_price as reference for generating realistic prices
+    base_price = amazon_price if amazon_price else random.uniform(30, 300)
     
-    for supplier in all_suppliers[:5]:
-        variation = random.uniform(0.7, 1.3)
+    # Add user's relevant suppliers
+    for supplier in relevant_suppliers[:5]:
+        # User suppliers typically offer better prices (wholesale/sourcing)
+        variation = random.uniform(0.45, 0.85)  # 15-55% cheaper than Amazon
         price = round(base_price * variation, 2)
-        shipping = round(random.uniform(0, 15), 2) if random.random() > 0.3 else 0
+        shipping = round(random.uniform(0, 10), 2) if random.random() > 0.4 else 0
         total = round(price + shipping, 2)
         
+        # Calculate profit margin based on Amazon price
+        if amazon_price:
+            margin = round(((amazon_price - total) / amazon_price) * 100, 1)
+        else:
+            margin = round(random.uniform(5, 45), 1)
+        
         comparisons.append(PriceComparisonResult(
-            supplier=supplier.get('name', supplier.get('name')),
+            supplier=supplier.get('name', ''),
+            supplier_url=supplier.get('url', ''),
+            price=price,
+            currency="EUR",
+            availability=random.choice(["In Stock", "In Stock", "In Stock", "Low Stock"]),
+            shipping=shipping,
+            total_price=total,
+            profit_margin=margin,
+            is_user_supplier=True,
+            supplier_category=supplier.get('category', '')
+        ))
+    
+    # Add default marketplace suppliers for comparison
+    for supplier in default_suppliers[:4]:
+        # Marketplaces are typically closer to Amazon price
+        variation = random.uniform(0.88, 1.12)
+        price = round(base_price * variation, 2)
+        shipping = round(random.uniform(0, 8), 2) if random.random() > 0.5 else 0
+        total = round(price + shipping, 2)
+        
+        # Calculate profit margin based on Amazon price
+        if amazon_price:
+            margin = round(((amazon_price - total) / amazon_price) * 100, 1)
+        else:
+            margin = round(random.uniform(-5, 15), 1)
+        
+        comparisons.append(PriceComparisonResult(
+            supplier=supplier.get('name', ''),
             supplier_url=supplier.get('url', ''),
             price=price,
             currency="EUR",
             availability=random.choice(["In Stock", "In Stock", "In Stock", "Low Stock", "Pre-order"]),
             shipping=shipping,
             total_price=total,
-            profit_margin=round(random.uniform(-10, 40), 1)
+            profit_margin=margin,
+            is_user_supplier=False,
+            supplier_category=None
         ))
     
     return sorted(comparisons, key=lambda x: x.total_price)
 
+# ==================== CATEGORIES ROUTES ====================
+
+@api_router.get("/categories")
+async def get_categories(user: dict = Depends(get_current_user)):
+    """Get available product categories"""
+    # Get unique categories from user's suppliers
+    suppliers = await db.suppliers.find({'user_id': user['id']}, {'_id': 0, 'category': 1}).to_list(1000)
+    supplier_categories = list(set(s.get('category', '') for s in suppliers if s.get('category')))
+    
+    # All available categories
+    all_categories = list(PRODUCT_CATEGORIES.keys())
+    
+    return {
+        "all_categories": all_categories,
+        "supplier_categories": supplier_categories,
+        "category_details": {
+            cat: {"keyword_count": len(config["keywords"])}
+            for cat, config in PRODUCT_CATEGORIES.items()
+        }
+    }
+
 @api_router.post("/search/text", response_model=SearchResult)
 async def search_by_text(request: ProductSearchRequest, user: dict = Depends(get_current_user)):
-    """Search products by text query"""
+    """Search products by text query with category filtering and Keepa profit margin"""
     api_keys = user.get('api_keys', {})
     google_key = api_keys.get('google_api_key')
     search_engine_id = api_keys.get('google_search_engine_id')
+    keepa_key = api_keys.get('keepa_api_key')
+    
+    # Auto-detect category if not provided
+    category = request.category if request.category else detect_category(request.query)
     
     # Get user's suppliers
     suppliers = await db.suppliers.find({'user_id': user['id']}, {'_id': 0}).to_list(100)
     
+    # Get Amazon reference price from Keepa (real or mock)
+    keepa_data = None
+    amazon_price = None
+    
+    if keepa_key:
+        # Try real Keepa API
+        try:
+            async with httpx.AsyncClient() as http_client:
+                # Search for product on Keepa
+                response = await http_client.get(
+                    "https://api.keepa.com/search",
+                    params={
+                        "key": keepa_key,
+                        "domain": 4,  # Amazon.fr
+                        "type": "product",
+                        "term": request.query
+                    },
+                    timeout=30
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get('products'):
+                        product = data['products'][0]
+                        # Keepa prices are in cents
+                        amazon_price = product.get('stats', {}).get('current', [None])[0]
+                        if amazon_price:
+                            amazon_price = amazon_price / 100.0
+                        keepa_data = {
+                            'asin': product.get('asin', ''),
+                            'title': product.get('title', request.query),
+                            'current_price': amazon_price,
+                            'mock_data': False
+                        }
+        except Exception as e:
+            logger.warning(f"Keepa API error: {e}")
+    
+    # If no real Keepa data, generate mock Amazon reference price
+    if not keepa_data:
+        keepa_data = generate_amazon_reference_price(request.query, category)
+        amazon_price = keepa_data['current_price']
+    
     # If Google API keys are configured, use real search
     if google_key and search_engine_id:
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
+            async with httpx.AsyncClient() as http_client:
+                response = await http_client.get(
                     "https://www.googleapis.com/customsearch/v1",
                     params={
                         "key": google_key,
@@ -547,9 +660,12 @@ async def search_by_text(request: ProductSearchRequest, user: dict = Depends(get
         except Exception as e:
             logger.warning(f"Google Search API error: {e}")
     
-    # Generate mock results for demo
-    comparisons = generate_mock_comparisons(request.query, suppliers)
+    # Generate comparisons with category filtering and Amazon-based margins
+    comparisons = generate_mock_comparisons(request.query, suppliers, category, amazon_price)
     prices = [c.total_price for c in comparisons]
+    
+    # Count matching user suppliers
+    matching_suppliers = [c for c in comparisons if c.is_user_supplier]
     
     # Save to search history
     history_doc = {
@@ -557,8 +673,11 @@ async def search_by_text(request: ProductSearchRequest, user: dict = Depends(get
         'user_id': user['id'],
         'query': request.query,
         'search_type': 'text',
+        'category': category,
         'results_count': len(comparisons),
         'lowest_price': min(prices) if prices else None,
+        'amazon_price': amazon_price,
+        'matching_suppliers_count': len(matching_suppliers),
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     await db.search_history.insert_one(history_doc)
@@ -566,11 +685,14 @@ async def search_by_text(request: ProductSearchRequest, user: dict = Depends(get
     return SearchResult(
         product_name=request.query,
         image_url=f"https://via.placeholder.com/300x300?text={request.query.replace(' ', '+')}",
-        detected_labels=[request.query, "product", "item"],
+        detected_labels=[request.query, category, "product"],
         comparisons=comparisons,
         lowest_price=min(prices) if prices else None,
         highest_price=max(prices) if prices else None,
-        average_price=round(sum(prices) / len(prices), 2) if prices else None
+        average_price=round(sum(prices) / len(prices), 2) if prices else None,
+        category=category,
+        amazon_reference_price=amazon_price,
+        keepa_data=keepa_data
     )
 
 @api_router.post("/search/image", response_model=SearchResult)
