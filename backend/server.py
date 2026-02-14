@@ -1121,9 +1121,11 @@ async def import_catalog(
             'exchange_rate': exchange_rate
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Catalog import error: {e}")
-        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'import : {str(e)}")
 
 @api_router.get("/catalog/products")
 async def get_catalog_products(
