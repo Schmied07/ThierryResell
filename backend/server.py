@@ -1572,8 +1572,13 @@ async def export_catalog(
     column_order = [
         'gtin', 'name', 'brand', 'category',
         'supplier_price_gbp', 'supplier_price_eur',
-        'amazon_price_eur', 'google_price_eur', 'best_price_eur',
-        'margin_eur', 'margin_percentage',
+        'amazon_price_eur', 'google_lowest_price_eur',
+        'cheapest_source', 'cheapest_buy_price_eur',
+        'amazon_fees_eur',
+        'amazon_margin_eur', 'amazon_margin_percentage',
+        'supplier_margin_eur', 'supplier_margin_percentage',
+        'google_margin_eur', 'google_margin_percentage',
+        'google_vs_amazon_diff_eur', 'supplier_vs_google_diff_eur',
         'inventory', 'number_of_offers', 'product_link',
         'last_compared_at', 'created_at'
     ]
@@ -1581,14 +1586,34 @@ async def export_catalog(
     df = df[[col for col in column_order if col in df.columns]]
     
     # Rename columns to French
-    df.columns = [
-        'Code EAN', 'Nom du produit', 'Marque', 'Catégorie',
-        'Prix fournisseur (£)', 'Prix fournisseur (€)',
-        'Prix Amazon (€)', 'Prix Google (€)', 'Meilleur prix (€)',
-        'Marge (€)', 'Marge (%)',
-        'Stock', "Nombre d'offres", 'Lien produit',
-        'Dernière comparaison', 'Date création'
-    ][:len(df.columns)]
+    column_names = {
+        'gtin': 'Code EAN',
+        'name': 'Nom du produit',
+        'brand': 'Marque',
+        'category': 'Catégorie',
+        'supplier_price_gbp': 'Prix fournisseur (£)',
+        'supplier_price_eur': 'Prix fournisseur (€)',
+        'amazon_price_eur': 'Prix Amazon (€)',
+        'google_lowest_price_eur': 'Prix Google le + bas (€)',
+        'cheapest_source': 'Source la - chère',
+        'cheapest_buy_price_eur': "Prix d'achat le + bas (€)",
+        'amazon_fees_eur': 'Frais Amazon 15% (€)',
+        'amazon_margin_eur': 'Marge nette Amazon (€)',
+        'amazon_margin_percentage': 'Marge nette Amazon (%)',
+        'supplier_margin_eur': 'Marge via fournisseur (€)',
+        'supplier_margin_percentage': 'Marge via fournisseur (%)',
+        'google_margin_eur': 'Marge via Google (€)',
+        'google_margin_percentage': 'Marge via Google (%)',
+        'google_vs_amazon_diff_eur': 'Diff Google vs Amazon (€)',
+        'supplier_vs_google_diff_eur': 'Diff Fournisseur vs Google (€)',
+        'inventory': 'Stock',
+        'number_of_offers': "Nombre d'offres",
+        'product_link': 'Lien produit',
+        'last_compared_at': 'Dernière comparaison',
+        'created_at': 'Date création'
+    }
+    
+    df = df.rename(columns={k: v for k, v in column_names.items() if k in df.columns})
     
     df.to_excel(output, index=False, engine='xlsxwriter')
     output.seek(0)
