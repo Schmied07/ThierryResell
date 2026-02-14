@@ -1505,16 +1505,26 @@ async def get_opportunities(
     limit: int = 50,
     min_margin_percentage: float = 0
 ):
-    """Get best reselling opportunities sorted by margin"""
+    """Get best reselling opportunities sorted by Amazon margin"""
+    # Try new field first, fallback to legacy
     products = await db.catalog_products.find({
         'user_id': user['id'],
-        'margin_percentage': {'$gte': min_margin_percentage},
-        'margin_eur': {'$ne': None}
-    }, {'_id': 0}).sort('margin_eur', -1).limit(limit).to_list(limit)
+        '$or': [
+            {'amazon_margin_percentage': {'$gte': min_margin_percentage}},
+            {'margin_percentage': {'$gte': min_margin_percentage}}
+        ],
+        '$and': [
+            {'$or': [
+                {'amazon_margin_eur': {'$ne': None}},
+                {'margin_eur': {'$ne': None}}
+            ]}
+        ]
+    }, {'_id': 0}).sort('amazon_margin_eur', -1).limit(limit).to_list(limit)
     
     return {
         'opportunities': products,
-        'total': len(products)
+        'total': len(products),
+        'amazon_fee_percentage': AMAZON_FEE_PERCENTAGE * 100
     }
 
 @api_router.delete("/catalog/products/{product_id}")
