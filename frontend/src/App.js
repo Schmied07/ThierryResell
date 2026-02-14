@@ -185,6 +185,14 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/catalog"
+              element={
+                <ProtectedRoute>
+                  <Catalog />
+                </ProtectedRoute>
+              }
+            />
           </Routes>
         </AppLayout>
         <Toaster 
