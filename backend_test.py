@@ -7,7 +7,7 @@ import os
 from typing import Dict, Any, Optional
 
 # Backend URL from frontend .env
-BACKEND_URL = "https://app-quality-check-2.preview.emergentagent.com/api"
+BACKEND_URL = "https://profit-analyzer-37.preview.emergentagent.com/api"
 
 class BackendTester:
     def __init__(self):
