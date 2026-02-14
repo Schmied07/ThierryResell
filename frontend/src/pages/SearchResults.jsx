@@ -315,38 +315,14 @@ const SearchResults = () => {
               </CardHeader>
               <CardContent>
                 <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={priceHistory}>
-                      <defs>
-                        <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#a3e635" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="#a3e635" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                      <XAxis
-                        dataKey="date"
-                        tick={{ fill: '#71717a', fontSize: 10 }}
-                        axisLine={{ stroke: '#3f3f46' }}
-                        tickLine={{ stroke: '#3f3f46' }}
-                      />
-                      <YAxis
-                        tick={{ fill: '#71717a', fontSize: 10 }}
-                        axisLine={{ stroke: '#3f3f46' }}
-                        tickLine={{ stroke: '#3f3f46' }}
-                        domain={['dataMin - 10', 'dataMax + 10']}
-                      />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Area
-                        type="monotone"
-                        dataKey="price"
-                        name="Prix moyen"
-                        stroke="#a3e635"
-                        fill="url(#colorPrice)"
-                        strokeWidth={2}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  {/* Chart temporarily disabled due to compilation issue */}
+                  <div className="h-full flex items-center justify-center bg-zinc-800/30 rounded-lg border border-zinc-700">
+                    <div className="text-center">
+                      <BarChart3 className="w-12 h-12 text-zinc-600 mx-auto mb-2" />
+                      <p className="text-zinc-500 text-sm">Graphique temporairement indisponible</p>
+                      <p className="text-zinc-600 text-xs">Historique des prix sur 30 jours</p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Detected Labels */}
