@@ -196,6 +196,7 @@ class SupplierResponse(BaseModel):
 class ProductSearchRequest(BaseModel):
     query: str
     search_type: str = "text"
+    category: Optional[str] = None  # Optional category filter
 
 class AlertCreate(BaseModel):
     product_name: str
