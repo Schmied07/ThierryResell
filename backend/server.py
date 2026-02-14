@@ -1019,7 +1019,7 @@ async def import_catalog(
             available_cols = list(df.columns)
             raise HTTPException(
                 status_code=400,
-                detail=f"Missing required fields: {', '.join(missing_fields)}. Available columns: {', '.join(available_cols)}"
+                detail=f"Colonnes manquantes : {', '.join(missing_fields)}. Colonnes disponibles : {', '.join(available_cols)}"
             )
         
         # Get exchange rate
