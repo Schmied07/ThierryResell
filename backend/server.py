@@ -1225,7 +1225,6 @@ def generate_mock_catalog_prices(product: dict) -> dict:
 
 def extract_price_from_text(text: str) -> Optional[float]:
     """Extract price from text string (supports €, EUR formats)"""
-    import re
     # Match patterns like: 29,99€, 29.99€, €29.99, 29,99 EUR, etc.
     patterns = [
         r'(\d+[.,]\d{2})\s*€',
