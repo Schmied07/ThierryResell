@@ -403,15 +403,18 @@ backend:
 
   - task: "Catalog Import"
     implemented: true
-    working: "NA"
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
         - agent: "main"
         - comment: "POST /api/catalog/import - Import Excel catalog file (.xlsx/.xls), parse products, convert GBP to EUR, store in MongoDB catalog_products collection. Validates required columns: GTIN, Name, Category, Brand, Price."
+        - working: true
+        - agent: "main"
+        - comment: "Fixed: removed explicit Content-Type header in frontend (was missing boundary), improved header row detection (up to 20 rows), more flexible column mapping, robust price parsing for NaN/empty values, French error messages."
 
   - task: "Catalog Products List"
     implemented: true
