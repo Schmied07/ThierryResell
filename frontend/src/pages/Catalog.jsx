@@ -21,7 +21,9 @@ import {
 import {
   Upload, FileSpreadsheet, RefreshCw, Download, Trash2,
   Search, Filter, TrendingUp, Package, DollarSign, 
-  Loader2, CheckCircle, AlertCircle, ArrowUpDown
+  Loader2, CheckCircle, AlertCircle, ArrowUpDown,
+  ChevronDown, ChevronUp, X, ShoppingCart, Globe, Store,
+  ArrowRight, Percent, Info
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -34,6 +36,8 @@ const Catalog = () => {
   const [loading, setLoading] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [comparing, setComparing] = useState(false);
+  const [expandedProduct, setExpandedProduct] = useState(null);
+  const [compareResult, setCompareResult] = useState(null);
   
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -111,7 +115,7 @@ const Catalog = () => {
       });
 
       toast.success(
-        `✅ Import réussi ! ${response.data.imported} produits importés, ${response.data.skipped} ignorés (doublons)`
+        `Import réussi ! ${response.data.imported} produits importés, ${response.data.skipped} ignorés`
       );
       
       setFile(null);
@@ -128,8 +132,10 @@ const Catalog = () => {
 
   const handleCompareProduct = async (productId) => {
     setComparing(true);
+    setExpandedProduct(productId);
     try {
       const response = await api.post(`/catalog/compare/${productId}`);
+      setCompareResult(response.data);
       toast.success(`Prix comparés pour ${response.data.product_name}`);
       fetchProducts();
       fetchStats();
@@ -150,7 +156,7 @@ const Catalog = () => {
     try {
       const response = await api.post("/catalog/compare-batch", selectedProducts);
       toast.success(
-        `✅ ${response.data.success} produits comparés, ${response.data.failed} erreurs`
+        `${response.data.success} produits comparés, ${response.data.failed} erreurs`
       );
       setSelectedProducts([]);
       fetchProducts();
@@ -214,87 +220,113 @@ const Catalog = () => {
     }
   };
 
-  const getMarginBadge = (percentage) => {
-    if (!percentage) return <Badge variant="secondary">Non comparé</Badge>;
-    if (percentage < 10) return <Badge variant="destructive">{percentage.toFixed(1)}%</Badge>;
-    if (percentage < 30) return <Badge variant="warning" className="bg-orange-500">{percentage.toFixed(1)}%</Badge>;
-    return <Badge variant="success" className="bg-green-500">{percentage.toFixed(1)}%</Badge>;
+  const getMarginBadge = (marginEur, marginPct) => {
+    if (marginEur === null || marginEur === undefined) return <Badge variant="secondary" className="text-xs">Non comparé</Badge>;
+    if (marginEur < 0) return <Badge className="bg-red-500/20 text-red-400 border border-red-500/30 text-xs">{marginPct?.toFixed(1)}%</Badge>;
+    if (marginPct < 10) return <Badge className="bg-orange-500/20 text-orange-400 border border-orange-500/30 text-xs">{marginPct?.toFixed(1)}%</Badge>;
+    if (marginPct < 25) return <Badge className="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 text-xs">{marginPct?.toFixed(1)}%</Badge>;
+    return <Badge className="bg-green-500/20 text-green-400 border border-green-500/30 text-xs">{marginPct?.toFixed(1)}%</Badge>;
+  };
+
+  const getCheapestSourceBadge = (source) => {
+    if (!source) return null;
+    if (source === "supplier") {
+      return <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs"><Store className="w-3 h-3 mr-1" />Fournisseur</Badge>;
+    }
+    return <Badge className="bg-purple-500/20 text-purple-400 border border-purple-500/30 text-xs"><Globe className="w-3 h-3 mr-1" />Google</Badge>;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 p-4 md:p-8">
+      <div className="max-w-[1600px] mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">📦 Catalogue Fournisseur</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Catalogue Fournisseur</h1>
           <p className="text-zinc-400">
-            Importez votre catalogue et comparez automatiquement les prix avec Amazon et Google
+            Importez votre catalogue, comparez les prix Amazon (Keepa) et Google, et calculez vos marges de revente
           </p>
         </div>
 
         {/* Stats Cards */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
             <Card className="bg-zinc-900/50 border-zinc-800">
-              <CardContent className="p-6">
+              <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-zinc-400 text-sm">Produits totaux</p>
-                    <p className="text-3xl font-bold text-white">{stats.total_products}</p>
+                    <p className="text-zinc-500 text-xs font-medium uppercase tracking-wider">Produits</p>
+                    <p className="text-2xl font-bold text-white mt-1">{stats.total_products}</p>
                   </div>
-                  <Package className="w-10 h-10 text-blue-400" />
+                  <Package className="w-8 h-8 text-blue-400/60" />
                 </div>
               </CardContent>
             </Card>
 
             <Card className="bg-zinc-900/50 border-zinc-800">
-              <CardContent className="p-6">
+              <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-zinc-400 text-sm">Produits comparés</p>
-                    <p className="text-3xl font-bold text-white">{stats.compared_products}</p>
+                    <p className="text-zinc-500 text-xs font-medium uppercase tracking-wider">Comparés</p>
+                    <p className="text-2xl font-bold text-white mt-1">{stats.compared_products}</p>
                   </div>
-                  <CheckCircle className="w-10 h-10 text-green-400" />
+                  <CheckCircle className="w-8 h-8 text-green-400/60" />
                 </div>
               </CardContent>
             </Card>
 
             <Card className="bg-zinc-900/50 border-zinc-800">
-              <CardContent className="p-6">
+              <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-zinc-400 text-sm">Marge potentielle</p>
-                    <p className="text-3xl font-bold text-white">
-                      {stats.total_potential_margin.toFixed(2)}€
-                    </p>
+                    <p className="text-zinc-500 text-xs font-medium uppercase tracking-wider">Rentables</p>
+                    <p className="text-2xl font-bold text-green-400 mt-1">{stats.profitable_products || 0}</p>
                   </div>
-                  <DollarSign className="w-10 h-10 text-yellow-400" />
+                  <TrendingUp className="w-8 h-8 text-green-400/60" />
                 </div>
               </CardContent>
             </Card>
 
             <Card className="bg-zinc-900/50 border-zinc-800">
-              <CardContent className="p-6">
+              <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-zinc-400 text-sm">Meilleure marge</p>
-                    <p className="text-3xl font-bold text-white">
-                      {stats.best_opportunity_margin.toFixed(2)}€
-                    </p>
+                    <p className="text-zinc-500 text-xs font-medium uppercase tracking-wider">Marge totale</p>
+                    <p className="text-2xl font-bold text-white mt-1">{stats.total_potential_margin?.toFixed(0)}€</p>
                   </div>
-                  <TrendingUp className="w-10 h-10 text-pink-400" />
+                  <DollarSign className="w-8 h-8 text-yellow-400/60" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-zinc-900/50 border-zinc-800">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-zinc-500 text-xs font-medium uppercase tracking-wider">Marge moy.</p>
+                    <p className="text-2xl font-bold text-white mt-1">{stats.avg_margin_percentage?.toFixed(1)}%</p>
+                  </div>
+                  <Percent className="w-8 h-8 text-pink-400/60" />
                 </div>
               </CardContent>
             </Card>
           </div>
         )}
 
+        {/* Info banner about Amazon fees */}
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-3 mb-6 flex items-center gap-3">
+          <Info className="w-5 h-5 text-amber-400 shrink-0" />
+          <p className="text-amber-200 text-sm">
+            <strong>Calcul des marges :</strong> Prix Amazon (vente) - Prix d'achat (le moins cher entre fournisseur et Google) - Frais Amazon (15% TTC).
+            Les données affichées sont <strong>simulées</strong> tant que les clés API Keepa et Google ne sont pas configurées dans les Paramètres.
+          </p>
+        </div>
+
         {/* Main Tabs */}
         <Tabs defaultValue="products" className="space-y-6">
           <TabsList className="bg-zinc-900/50 border border-zinc-800">
-            <TabsTrigger value="import">📤 Import</TabsTrigger>
-            <TabsTrigger value="products">📋 Produits</TabsTrigger>
-            <TabsTrigger value="opportunities">💎 Opportunités</TabsTrigger>
+            <TabsTrigger value="import">Import</TabsTrigger>
+            <TabsTrigger value="products">Produits</TabsTrigger>
+            <TabsTrigger value="opportunities">Opportunités</TabsTrigger>
           </TabsList>
 
           {/* Import Tab */}
@@ -358,7 +390,7 @@ const Catalog = () => {
                 )}
 
                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-                  <h4 className="text-blue-400 font-semibold mb-2">📋 Format attendu</h4>
+                  <h4 className="text-blue-400 font-semibold mb-2">Format attendu</h4>
                   <p className="text-zinc-400 text-sm mb-2">
                     Votre fichier Excel doit contenir les colonnes suivantes :
                   </p>
@@ -378,21 +410,21 @@ const Catalog = () => {
           <TabsContent value="products">
             <Card className="bg-zinc-900/50 border-zinc-800">
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                   <CardTitle className="text-white">Liste des produits</CardTitle>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {selectedProducts.length > 0 && (
                       <Button
                         onClick={handleCompareBatch}
                         disabled={comparing}
-                        className="bg-gradient-to-r from-green-500 to-emerald-500"
+                        className="bg-gradient-to-r from-green-500 to-emerald-500 text-white"
                       >
                         {comparing ? (
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         ) : (
                           <RefreshCw className="w-4 h-4 mr-2" />
                         )}
-                        Comparer sélection ({selectedProducts.length})
+                        Comparer ({selectedProducts.length})
                       </Button>
                     )}
                     <Button onClick={handleExport} variant="outline" className="border-zinc-700">
@@ -405,15 +437,15 @@ const Catalog = () => {
                       className="bg-red-500/20 border border-red-500/50"
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
-                      Tout supprimer
+                      Supprimer tout
                     </Button>
                   </div>
                 </div>
 
                 {/* Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mt-4">
                   <Input
-                    placeholder="🔍 Rechercher..."
+                    placeholder="Rechercher..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="bg-zinc-800 border-zinc-700 text-white"
@@ -422,7 +454,7 @@ const Catalog = () => {
                   <select
                     value={selectedBrand}
                     onChange={(e) => setSelectedBrand(e.target.value)}
-                    className="bg-zinc-800 border border-zinc-700 text-white rounded-md px-3 py-2"
+                    className="bg-zinc-800 border border-zinc-700 text-white rounded-md px-3 py-2 text-sm"
                   >
                     <option value="">Toutes les marques</option>
                     {stats?.brands?.map(brand => (
@@ -433,7 +465,7 @@ const Catalog = () => {
                   <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="bg-zinc-800 border border-zinc-700 text-white rounded-md px-3 py-2"
+                    className="bg-zinc-800 border border-zinc-700 text-white rounded-md px-3 py-2 text-sm"
                   >
                     <option value="">Toutes les catégories</option>
                     {stats?.categories?.map(cat => (
@@ -478,84 +510,149 @@ const Catalog = () => {
                       <Table>
                         <TableHeader>
                           <TableRow className="border-zinc-800">
-                            <TableHead className="text-zinc-400">
+                            <TableHead className="text-zinc-400 w-10">
                               <input
                                 type="checkbox"
-                                checked={selectedProducts.length === products.length}
+                                checked={selectedProducts.length === products.length && products.length > 0}
                                 onChange={toggleSelectAll}
                                 className="rounded"
                               />
                             </TableHead>
-                            <TableHead className="text-zinc-400">EAN</TableHead>
                             <TableHead className="text-zinc-400">Produit</TableHead>
-                            <TableHead className="text-zinc-400">Marque</TableHead>
-                            <TableHead className="text-zinc-400">Catégorie</TableHead>
-                            <TableHead className="text-zinc-400">Prix fourni. (€)</TableHead>
-                            <TableHead className="text-zinc-400">Prix Amazon (€)</TableHead>
-                            <TableHead className="text-zinc-400">Meilleur prix (€)</TableHead>
-                            <TableHead className="text-zinc-400">Marge</TableHead>
-                            <TableHead className="text-zinc-400">Actions</TableHead>
+                            <TableHead className="text-zinc-400 text-right">Fournisseur</TableHead>
+                            <TableHead className="text-zinc-400 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <ShoppingCart className="w-3 h-3" />
+                                Amazon
+                              </div>
+                            </TableHead>
+                            <TableHead className="text-zinc-400 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Globe className="w-3 h-3" />
+                                Google
+                              </div>
+                            </TableHead>
+                            <TableHead className="text-zinc-400 text-center">Source - chère</TableHead>
+                            <TableHead className="text-zinc-400 text-right">Frais Amazon</TableHead>
+                            <TableHead className="text-zinc-400 text-right">Marge nette</TableHead>
+                            <TableHead className="text-zinc-400 w-24">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {products.map((product) => (
-                            <TableRow key={product.id} className="border-zinc-800">
-                              <TableCell>
-                                <input
-                                  type="checkbox"
-                                  checked={selectedProducts.includes(product.id)}
-                                  onChange={() => toggleProductSelection(product.id)}
-                                  className="rounded"
-                                />
-                              </TableCell>
-                              <TableCell className="text-zinc-400 font-mono text-xs">
-                                {product.gtin}
-                              </TableCell>
-                              <TableCell className="text-white max-w-xs truncate">
-                                {product.name}
-                              </TableCell>
-                              <TableCell className="text-zinc-300">{product.brand}</TableCell>
-                              <TableCell className="text-zinc-400 text-sm">
-                                {product.category}
-                              </TableCell>
-                              <TableCell className="text-white font-semibold">
-                                {product.supplier_price_eur?.toFixed(2)}€
-                              </TableCell>
-                              <TableCell className="text-zinc-300">
-                                {product.amazon_price_eur 
-                                  ? `${product.amazon_price_eur.toFixed(2)}€`
-                                  : "-"}
-                              </TableCell>
-                              <TableCell className="text-green-400 font-semibold">
-                                {product.best_price_eur 
-                                  ? `${product.best_price_eur.toFixed(2)}€`
-                                  : "-"}
-                              </TableCell>
-                              <TableCell>
-                                {product.margin_eur ? (
-                                  <div>
-                                    <div className="text-white font-semibold">
-                                      {product.margin_eur.toFixed(2)}€
-                                    </div>
-                                    {getMarginBadge(product.margin_percentage)}
-                                  </div>
-                                ) : (
-                                  <Badge variant="secondary">-</Badge>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleCompareProduct(product.id)}
-                                  disabled={comparing}
-                                  variant="outline"
-                                  className="border-zinc-700 text-white"
+                          {products.map((product) => {
+                            const amazonMargin = product.amazon_margin_eur ?? product.margin_eur;
+                            const amazonMarginPct = product.amazon_margin_percentage ?? product.margin_percentage;
+                            const isExpanded = expandedProduct === product.id;
+                            
+                            return (
+                              <>
+                                <TableRow 
+                                  key={product.id} 
+                                  className={`border-zinc-800 cursor-pointer hover:bg-zinc-800/30 transition-colors ${isExpanded ? 'bg-zinc-800/20' : ''}`}
+                                  onClick={() => setExpandedProduct(isExpanded ? null : product.id)}
                                 >
-                                  <RefreshCw className="w-3 h-3" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                                  <TableCell onClick={(e) => e.stopPropagation()}>
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedProducts.includes(product.id)}
+                                      onChange={() => toggleProductSelection(product.id)}
+                                      className="rounded"
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="max-w-[250px]">
+                                      <p className="text-white text-sm font-medium truncate">{product.name}</p>
+                                      <p className="text-zinc-500 text-xs">{product.brand} · {product.gtin}</p>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <span className="text-white font-semibold text-sm">
+                                      {product.supplier_price_eur?.toFixed(2)}€
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {product.amazon_price_eur ? (
+                                      <span className="text-amber-400 font-semibold text-sm">
+                                        {product.amazon_price_eur.toFixed(2)}€
+                                      </span>
+                                    ) : (
+                                      <span className="text-zinc-600 text-sm">-</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {product.google_lowest_price_eur ? (
+                                      <span className="text-purple-400 font-semibold text-sm">
+                                        {product.google_lowest_price_eur.toFixed(2)}€
+                                      </span>
+                                    ) : product.google_price_eur ? (
+                                      <span className="text-purple-400 font-semibold text-sm">
+                                        {product.google_price_eur.toFixed(2)}€
+                                      </span>
+                                    ) : (
+                                      <span className="text-zinc-600 text-sm">-</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    {getCheapestSourceBadge(product.cheapest_source)}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {product.amazon_fees_eur ? (
+                                      <span className="text-red-400 text-sm">
+                                        -{product.amazon_fees_eur.toFixed(2)}€
+                                      </span>
+                                    ) : (
+                                      <span className="text-zinc-600 text-sm">-</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {amazonMargin !== null && amazonMargin !== undefined ? (
+                                      <div className="flex flex-col items-end gap-1">
+                                        <span className={`font-bold text-sm ${amazonMargin >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                          {amazonMargin >= 0 ? '+' : ''}{amazonMargin?.toFixed(2)}€
+                                        </span>
+                                        {getMarginBadge(amazonMargin, amazonMarginPct)}
+                                      </div>
+                                    ) : (
+                                      <Badge variant="secondary" className="text-xs">-</Badge>
+                                    )}
+                                  </TableCell>
+                                  <TableCell onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex items-center gap-1">
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleCompareProduct(product.id)}
+                                        disabled={comparing}
+                                        className="bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 h-8 px-2"
+                                      >
+                                        {comparing && expandedProduct === product.id ? (
+                                          <Loader2 className="w-3 h-3 animate-spin" />
+                                        ) : (
+                                          <RefreshCw className="w-3 h-3" />
+                                        )}
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => setExpandedProduct(isExpanded ? null : product.id)}
+                                        variant="ghost"
+                                        className="text-zinc-400 h-8 px-2"
+                                      >
+                                        {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                                
+                                {/* Expanded Detail Row */}
+                                {isExpanded && product.last_compared_at && (
+                                  <TableRow key={`${product.id}-detail`} className="border-zinc-800 bg-zinc-900/50">
+                                    <TableCell colSpan={9} className="p-0">
+                                      <ProductComparisonDetail product={product} compareResult={compareResult} />
+                                    </TableCell>
+                                  </TableRow>
+                                )}
+                              </>
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     </div>
@@ -563,7 +660,7 @@ const Catalog = () => {
                     {/* Pagination */}
                     <div className="flex items-center justify-between mt-4">
                       <p className="text-zinc-400 text-sm">
-                        Affichage {currentPage * pageSize + 1} à{" "}
+                        {currentPage * pageSize + 1} à{" "}
                         {Math.min((currentPage + 1) * pageSize, totalProducts)} sur {totalProducts}
                       </p>
                       <div className="flex gap-2">
@@ -603,6 +700,151 @@ const Catalog = () => {
   );
 };
 
+/* ==================== PRODUCT COMPARISON DETAIL ==================== */
+const ProductComparisonDetail = ({ product, compareResult }) => {
+  const supplierPrice = product.supplier_price_eur;
+  const amazonPrice = product.amazon_price_eur;
+  const googlePrice = product.google_lowest_price_eur || product.google_price_eur;
+  const amazonFees = product.amazon_fees_eur;
+  const supplierMargin = product.supplier_margin_eur;
+  const supplierMarginPct = product.supplier_margin_percentage;
+  const googleMargin = product.google_margin_eur;
+  const googleMarginPct = product.google_margin_percentage;
+  const cheapestSource = product.cheapest_source;
+  const bestMargin = product.amazon_margin_eur ?? product.margin_eur;
+  const bestMarginPct = product.amazon_margin_percentage ?? product.margin_percentage;
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Price Comparison Visual */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Supplier Price Card */}
+        <div className={`rounded-lg p-4 border ${cheapestSource === 'supplier' ? 'bg-blue-500/10 border-blue-500/30' : 'bg-zinc-800/50 border-zinc-700'}`}>
+          <div className="flex items-center gap-2 mb-3">
+            <Store className="w-5 h-5 text-blue-400" />
+            <h4 className="text-white font-semibold text-sm">Prix Fournisseur</h4>
+            {cheapestSource === 'supplier' && (
+              <Badge className="bg-blue-500/30 text-blue-300 text-[10px] ml-auto">LE - CHER</Badge>
+            )}
+          </div>
+          <p className="text-3xl font-bold text-white">{supplierPrice?.toFixed(2)}€</p>
+          <p className="text-zinc-500 text-xs mt-1">
+            ({product.supplier_price_gbp?.toFixed(2)} £)
+          </p>
+          {amazonPrice && (
+            <div className="mt-3 pt-3 border-t border-zinc-700/50">
+              <p className="text-zinc-400 text-xs">Marge si achat fournisseur :</p>
+              <p className={`text-lg font-bold ${supplierMargin >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {supplierMargin >= 0 ? '+' : ''}{supplierMargin?.toFixed(2)}€
+                <span className="text-sm font-normal ml-1">({supplierMarginPct?.toFixed(1)}%)</span>
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Amazon Price Card (Selling price) */}
+        <div className="rounded-lg p-4 border bg-amber-500/10 border-amber-500/30">
+          <div className="flex items-center gap-2 mb-3">
+            <ShoppingCart className="w-5 h-5 text-amber-400" />
+            <h4 className="text-white font-semibold text-sm">Prix Amazon (Vente)</h4>
+          </div>
+          <p className="text-3xl font-bold text-amber-400">{amazonPrice?.toFixed(2)}€</p>
+          <p className="text-zinc-500 text-xs mt-1">Prix de vente sur Amazon</p>
+          {amazonFees && (
+            <div className="mt-3 pt-3 border-t border-zinc-700/50">
+              <p className="text-zinc-400 text-xs">Frais Amazon (15% TTC) :</p>
+              <p className="text-red-400 text-lg font-bold">-{amazonFees?.toFixed(2)}€</p>
+            </div>
+          )}
+        </div>
+
+        {/* Google Price Card */}
+        <div className={`rounded-lg p-4 border ${cheapestSource === 'google' ? 'bg-purple-500/10 border-purple-500/30' : 'bg-zinc-800/50 border-zinc-700'}`}>
+          <div className="flex items-center gap-2 mb-3">
+            <Globe className="w-5 h-5 text-purple-400" />
+            <h4 className="text-white font-semibold text-sm">Prix Google (+ bas)</h4>
+            {cheapestSource === 'google' && (
+              <Badge className="bg-purple-500/30 text-purple-300 text-[10px] ml-auto">LE - CHER</Badge>
+            )}
+          </div>
+          <p className="text-3xl font-bold text-white">{googlePrice?.toFixed(2)}€</p>
+          <p className="text-zinc-500 text-xs mt-1">Prix le + bas trouvé en ligne</p>
+          {amazonPrice && googlePrice && (
+            <div className="mt-3 pt-3 border-t border-zinc-700/50">
+              <p className="text-zinc-400 text-xs">Marge si achat Google :</p>
+              <p className={`text-lg font-bold ${googleMargin >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {googleMargin >= 0 ? '+' : ''}{googleMargin?.toFixed(2)}€
+                <span className="text-sm font-normal ml-1">({googleMarginPct?.toFixed(1)}%)</span>
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Comparison Summary */}
+      {amazonPrice && (
+        <div className="bg-zinc-800/30 rounded-lg p-4 border border-zinc-700">
+          <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-lime-400" />
+            Résumé de la comparaison
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Fournisseur vs Google */}
+            <div className="space-y-2">
+              <p className="text-zinc-400 text-sm font-medium">Fournisseur vs Google :</p>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Store className="w-4 h-4 text-blue-400" />
+                  <span className="text-white">{supplierPrice?.toFixed(2)}€</span>
+                </div>
+                <span className="text-zinc-500">vs</span>
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-purple-400" />
+                  <span className="text-white">{googlePrice?.toFixed(2)}€</span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-zinc-500" />
+                {supplierPrice <= googlePrice ? (
+                  <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                    Fournisseur - cher ({(googlePrice - supplierPrice).toFixed(2)}€)
+                  </Badge>
+                ) : (
+                  <Badge className="bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                    Google - cher ({(supplierPrice - googlePrice).toFixed(2)}€)
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            {/* Meilleure marge Amazon */}
+            <div className="space-y-2">
+              <p className="text-zinc-400 text-sm font-medium">Meilleure marge (revente Amazon) :</p>
+              <div className="flex items-center gap-3">
+                <div className={`px-4 py-2 rounded-lg ${bestMargin >= 0 ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
+                  <p className={`text-2xl font-bold ${bestMargin >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {bestMargin >= 0 ? '+' : ''}{bestMargin?.toFixed(2)}€
+                  </p>
+                  <p className="text-zinc-400 text-xs">
+                    {bestMarginPct?.toFixed(1)}% marge nette
+                    {cheapestSource && ` (via ${cheapestSource === 'supplier' ? 'fournisseur' : 'Google'})`}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Calculation breakdown */}
+          <div className="mt-4 pt-4 border-t border-zinc-700/50">
+            <p className="text-zinc-500 text-xs">
+              Calcul : {amazonPrice?.toFixed(2)}€ (Amazon) - {(product.cheapest_buy_price_eur || Math.min(supplierPrice, googlePrice || supplierPrice))?.toFixed(2)}€ (achat) - {amazonFees?.toFixed(2)}€ (frais 15%) = <strong className={bestMargin >= 0 ? 'text-green-400' : 'text-red-400'}>{bestMargin?.toFixed(2)}€</strong>
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ==================== OPPORTUNITIES TAB ==================== */
 const OpportunitiesTab = () => {
   const [opportunities, setOpportunities] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -633,7 +875,7 @@ const OpportunitiesTab = () => {
     <Card className="bg-zinc-900/50 border-zinc-800">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-white">💎 Meilleures opportunités de revente</CardTitle>
+          <CardTitle className="text-white">Meilleures opportunités de revente Amazon</CardTitle>
           <div className="flex items-center gap-2">
             <span className="text-zinc-400 text-sm">Marge min:</span>
             <Input
@@ -657,63 +899,103 @@ const OpportunitiesTab = () => {
             <TrendingUp className="w-16 h-16 text-zinc-600 mx-auto mb-4" />
             <p className="text-zinc-400">Aucune opportunité trouvée</p>
             <p className="text-zinc-500 text-sm">
-              Comparez d'abord les prix de vos produits
+              Comparez d'abord les prix de vos produits dans l'onglet Produits
             </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {opportunities.map((product, index) => (
-              <div
-                key={product.id}
-                className="bg-zinc-800/50 rounded-lg p-6 border border-zinc-700 hover:border-zinc-600 transition-colors"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-2xl font-bold text-zinc-500">
-                        #{index + 1}
-                      </span>
-                      <div>
-                        <h3 className="text-white font-semibold">{product.name}</h3>
-                        <p className="text-zinc-400 text-sm">
-                          {product.brand} • {product.category}
-                        </p>
-                      </div>
-                    </div>
+            {opportunities.map((product, index) => {
+              const amazonMargin = product.amazon_margin_eur ?? product.margin_eur;
+              const amazonMarginPct = product.amazon_margin_percentage ?? product.margin_percentage;
+              const supplierMargin = product.supplier_margin_eur;
+              const googleMargin = product.google_margin_eur;
+              const cheapestSource = product.cheapest_source;
+              const googlePrice = product.google_lowest_price_eur || product.google_price_eur;
 
-                    <div className="grid grid-cols-4 gap-4 mt-4">
-                      <div>
-                        <p className="text-zinc-500 text-xs mb-1">Prix fournisseur</p>
-                        <p className="text-white font-semibold">
-                          {product.supplier_price_eur.toFixed(2)}€
-                        </p>
+              return (
+                <div
+                  key={product.id}
+                  className="bg-zinc-800/50 rounded-lg p-6 border border-zinc-700 hover:border-zinc-600 transition-colors"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-4">
+                        <span className="text-2xl font-bold text-zinc-500">
+                          #{index + 1}
+                        </span>
+                        <div>
+                          <h3 className="text-white font-semibold">{product.name}</h3>
+                          <p className="text-zinc-400 text-sm">
+                            {product.brand} · {product.category} · EAN: {product.gtin}
+                          </p>
+                        </div>
+                        {cheapestSource && (
+                          <div className="ml-auto">
+                            {cheapestSource === 'supplier' ? (
+                              <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                <Store className="w-3 h-3 mr-1" />Acheter via Fournisseur
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                <Globe className="w-3 h-3 mr-1" />Acheter via Google
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <p className="text-zinc-500 text-xs mb-1">Prix Amazon</p>
-                        <p className="text-white font-semibold">
-                          {product.amazon_price_eur?.toFixed(2)}€
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-zinc-500 text-xs mb-1">Meilleur prix</p>
-                        <p className="text-green-400 font-semibold">
-                          {product.best_price_eur.toFixed(2)}€
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-zinc-500 text-xs mb-1">Marge potentielle</p>
-                        <p className="text-2xl font-bold text-green-400">
-                          {product.margin_eur.toFixed(2)}€
-                        </p>
-                        <Badge variant="success" className="bg-green-500 mt-1">
-                          +{product.margin_percentage.toFixed(1)}%
-                        </Badge>
+
+                      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                        <div>
+                          <p className="text-zinc-500 text-xs mb-1 flex items-center gap-1">
+                            <Store className="w-3 h-3" /> Fournisseur
+                          </p>
+                          <p className="text-white font-semibold">
+                            {product.supplier_price_eur?.toFixed(2)}€
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-zinc-500 text-xs mb-1 flex items-center gap-1">
+                            <ShoppingCart className="w-3 h-3" /> Amazon (vente)
+                          </p>
+                          <p className="text-amber-400 font-semibold">
+                            {product.amazon_price_eur?.toFixed(2)}€
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-zinc-500 text-xs mb-1 flex items-center gap-1">
+                            <Globe className="w-3 h-3" /> Google (+ bas)
+                          </p>
+                          <p className="text-purple-400 font-semibold">
+                            {googlePrice?.toFixed(2)}€
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-zinc-500 text-xs mb-1">Frais Amazon (15%)</p>
+                          <p className="text-red-400 font-semibold">
+                            -{product.amazon_fees_eur?.toFixed(2)}€
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-zinc-500 text-xs mb-1">Marge fournisseur</p>
+                          <p className={`font-semibold ${supplierMargin >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {supplierMargin !== null && supplierMargin !== undefined ? `${supplierMargin >= 0 ? '+' : ''}${supplierMargin?.toFixed(2)}€` : '-'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-zinc-500 text-xs mb-1">Marge nette</p>
+                          <p className={`text-2xl font-bold ${amazonMargin >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {amazonMargin >= 0 ? '+' : ''}{amazonMargin?.toFixed(2)}€
+                          </p>
+                          <Badge className={`mt-1 ${amazonMarginPct >= 0 ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'} border`}>
+                            {amazonMarginPct >= 0 ? '+' : ''}{amazonMarginPct?.toFixed(1)}%
+                          </Badge>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>
