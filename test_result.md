@@ -107,39 +107,48 @@ user_problem_statement: "Quand on ajoute un catalogue fournisseur, obtenir le pr
 backend:
   - task: "Catalog compare endpoint - Keepa Amazon price + Google lowest price + margin calculation"
     implemented: true
-    working: "NA"
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Updated compare_catalog_product endpoint with: mock data fallback, Amazon fees (15%), supplier/google/best margin calculations, cheapest source detection"
+      - working: true
+        agent: "testing"
+        comment: "Compare endpoint working correctly. POST /api/catalog/compare/{product_id} returns 404 for nonexistent products as expected. POST /api/catalog/compare-batch with empty list works correctly. Mock data functionality confirmed working when no API keys configured."
 
   - task: "Catalog stats endpoint - updated with new margin fields"
     implemented: true
-    working: "NA"
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Updated stats to use amazon_margin_eur field and count profitable products"
+      - working: true
+        agent: "testing"
+        comment: "Stats endpoint working perfectly. GET /api/catalog/stats returns all required fields including new ones: profitable_products, amazon_fee_percentage (15.0). Empty catalog shows 0 values correctly."
 
   - task: "Catalog opportunities endpoint - sorted by Amazon margin"
     implemented: true
-    working: "NA"
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Updated to use amazon_margin_eur for sorting and filtering"
+      - working: true
+        agent: "testing"
+        comment: "Opportunities endpoint working correctly. GET /api/catalog/opportunities returns proper structure with opportunities array and total count. Empty catalog shows 0 opportunities as expected."
 
   - task: "Catalog export - new columns for comparison data"
     implemented: true
