@@ -12,7 +12,7 @@ from datetime import datetime
 from io import BytesIO
 
 class ResellCornerAPITester:
-    def __init__(self, base_url="https://resell-pro-4.preview.emergentagent.com"):
+    def __init__(self, base_url="https://app-quality-check-2.preview.emergentagent.com"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
         self.token = None
