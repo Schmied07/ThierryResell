@@ -968,27 +968,31 @@ async def import_catalog(
         
         # Try different header row positions to find the correct structure
         df = None
-        for header_row in [0, 1, 2, 3, 4]:
+        for header_row in range(20):  # Try up to 20 rows for header detection
             try:
                 temp_df = pd.read_excel(io.BytesIO(contents), header=header_row)
                 # Check if this looks like the right header row
-                if len(temp_df.columns) > 4 and any('GTIN' in str(col) for col in temp_df.columns):
+                col_str = ' '.join(str(col) for col in temp_df.columns)
+                if len(temp_df.columns) > 3 and ('GTIN' in col_str or 'EAN' in col_str):
                     df = temp_df
                     break
-                # Check if the first row contains the headers
-                if len(temp_df) > 0:
-                    first_row = temp_df.iloc[0]
-                    if any('GTIN' in str(val) for val in first_row.values):
-                        # Use first row as headers
-                        new_columns = [str(val) if pd.notna(val) else f'Unnamed_{i}' for i, val in enumerate(first_row.values)]
-                        df = temp_df.iloc[1:].copy()
+                # Check if any of the first few rows contain the headers
+                for row_idx in range(min(5, len(temp_df))):
+                    row_vals = temp_df.iloc[row_idx]
+                    row_str = ' '.join(str(v) for v in row_vals.values if pd.notna(v))
+                    if 'GTIN' in row_str or 'EAN' in row_str:
+                        # Use this row as headers
+                        new_columns = [str(val) if pd.notna(val) else f'Unnamed_{i}' for i, val in enumerate(row_vals.values)]
+                        df = temp_df.iloc[row_idx + 1:].copy()
                         df.columns = new_columns
                         break
-            except:
+                if df is not None:
+                    break
+            except Exception:
                 continue
         
         if df is None:
-            raise HTTPException(status_code=400, detail="Could not parse Excel file structure")
+            raise HTTPException(status_code=400, detail="Impossible de trouver les colonnes GTIN/EAN dans le fichier. Vérifiez que le fichier contient bien des colonnes GTIN, Name, Category, Brand et un prix.")
         
         # Clean up column names and find required columns
         df.columns = [str(col).strip() for col in df.columns]
