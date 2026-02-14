@@ -10,7 +10,7 @@ import {
 } from "./ui/dropdown-menu";
 import { 
   TrendingUp, LayoutDashboard, Package, Bell, Heart, 
-  Settings, LogOut, User, Menu, X
+  Settings, LogOut, User, Menu, X, FileSpreadsheet
 } from "lucide-react";
 import { useState } from "react";
 
