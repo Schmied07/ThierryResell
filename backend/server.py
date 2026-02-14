@@ -291,6 +291,30 @@ class CatalogStats(BaseModel):
     avg_margin_percentage: float
     best_opportunity_margin: float
 
+# ==================== CURRENCY CONVERSION ====================
+
+# Fixed GBP to EUR rate (you can make this dynamic with an API later)
+GBP_TO_EUR_RATE = 1.17  # 1 GBP = 1.17 EUR (approximate)
+
+def convert_gbp_to_eur(price_gbp: float) -> float:
+    """Convert GBP to EUR"""
+    return round(price_gbp * GBP_TO_EUR_RATE, 2)
+
+async def get_exchange_rate() -> float:
+    """Get current GBP to EUR exchange rate from API (fallback to fixed rate)"""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://api.exchangerate-api.com/v4/latest/GBP",
+                timeout=5
+            )
+            if response.status_code == 200:
+                data = response.json()
+                return data['rates'].get('EUR', GBP_TO_EUR_RATE)
+    except Exception as e:
+        logger.warning(f"Exchange rate API error, using fixed rate: {e}")
+    return GBP_TO_EUR_RATE
+
 # ==================== AUTH HELPERS ====================
 
 def hash_password(password: str) -> str:
