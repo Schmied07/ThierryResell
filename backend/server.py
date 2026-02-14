@@ -262,6 +262,24 @@ class SearchResult(BaseModel):
     amazon_reference_price: Optional[float] = None
     keepa_data: Optional[Dict[str, Any]] = None
 
+# ==================== AMAZON FEES ====================
+
+# Amazon referral fee percentage (standard ~15% TTC)
+AMAZON_FEE_PERCENTAGE = 0.15
+
+def calculate_amazon_fees(amazon_price: float) -> float:
+    """Calculate Amazon referral fees (15% TTC)"""
+    return round(amazon_price * AMAZON_FEE_PERCENTAGE, 2)
+
+def calculate_margin(selling_price: float, buying_price: float, fees: float) -> dict:
+    """Calculate net margin after Amazon fees"""
+    margin_eur = round(selling_price - buying_price - fees, 2)
+    margin_percentage = round((margin_eur / selling_price) * 100, 2) if selling_price > 0 else 0
+    return {
+        'margin_eur': margin_eur,
+        'margin_percentage': margin_percentage
+    }
+
 # ==================== CATALOG MODELS ====================
 
 class CatalogProduct(BaseModel):
@@ -276,7 +294,23 @@ class CatalogProduct(BaseModel):
     inventory: str
     number_of_offers: int
     product_link: Optional[str] = None
-    amazon_price_eur: Optional[float] = None
+    # Price data
+    amazon_price_eur: Optional[float] = None  # Prix de vente Amazon (via Keepa)
+    google_lowest_price_eur: Optional[float] = None  # Prix le plus bas en ligne (via Google)
+    # Comparison results
+    cheapest_source: Optional[str] = None  # "supplier" or "google"
+    cheapest_buy_price_eur: Optional[float] = None  # min(supplier, google)
+    amazon_fees_eur: Optional[float] = None  # Frais Amazon (15% TTC)
+    # Margins
+    amazon_margin_eur: Optional[float] = None  # Marge nette = amazon - achat - frais
+    amazon_margin_percentage: Optional[float] = None  # % marge nette
+    supplier_margin_eur: Optional[float] = None  # Marge si achat fournisseur
+    supplier_margin_percentage: Optional[float] = None
+    google_margin_eur: Optional[float] = None  # Marge si achat Google
+    google_margin_percentage: Optional[float] = None
+    google_vs_amazon_diff_eur: Optional[float] = None  # Diff prix Google vs Amazon
+    supplier_vs_google_diff_eur: Optional[float] = None  # Diff prix Fournisseur vs Google
+    # Legacy (keep for backwards compat)
     google_price_eur: Optional[float] = None
     best_price_eur: Optional[float] = None
     margin_eur: Optional[float] = None
