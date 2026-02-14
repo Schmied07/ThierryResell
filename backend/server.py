@@ -1396,28 +1396,29 @@ async def compare_catalog_product(
             logger.warning(f"Google API error for {product['name']}: {e}")
     
     # ==================== MOCK DATA FALLBACK ====================
-    if amazon_price is None and google_lowest_price is None:
+    has_api_keys = bool(keepa_key) or bool(google_key and google_cx)
+    
+    if amazon_price is None and google_lowest_price is None and not has_api_keys:
+        # No API keys configured at all → use mock data for demo
         mock_prices = generate_mock_catalog_prices(product)
         amazon_price = mock_prices['amazon_price']
         google_lowest_price = mock_prices['google_lowest_price']
         is_mock_data = True
-        logger.info(f"Using mock prices for {product['name']}: Amazon=€{amazon_price}, Google=€{google_lowest_price}")
-    elif amazon_price is None:
-        # Have Google but not Amazon - estimate Amazon from Google
-        amazon_price = round(google_lowest_price * random.uniform(1.0, 1.15), 2)
-        is_mock_data = True
-    elif google_lowest_price is None:
-        # Have Amazon but not Google - estimate Google from Amazon
-        google_lowest_price = round(amazon_price * random.uniform(0.85, 1.05), 2)
-        is_mock_data = True
+        logger.info(f"Using mock prices for {product['name']} (no API keys): Amazon=€{amazon_price}, Google=€{google_lowest_price}")
+    elif amazon_price is None and google_lowest_price is None and has_api_keys:
+        # API keys configured but no prices found → product not found on APIs
+        is_mock_data = False
+        logger.info(f"No prices found via APIs for {product['name']} (GTIN: {product['gtin']})")
+    else:
+        is_mock_data = False
     
     # ==================== CALCULATE COMPARISONS ====================
     
-    # Amazon fees (15% TTC)
-    amazon_fees = calculate_amazon_fees(amazon_price)
+    # Amazon fees (15% TTC) - only if amazon price is available
+    amazon_fees = calculate_amazon_fees(amazon_price) if amazon_price else None
     
     # Cheapest source between supplier and Google
-    if google_lowest_price <= supplier_price:
+    if google_lowest_price is not None and google_lowest_price <= supplier_price:
         cheapest_source = "google"
         cheapest_buy_price = google_lowest_price
     else:
@@ -1425,17 +1426,17 @@ async def compare_catalog_product(
         cheapest_buy_price = supplier_price
     
     # Margin if buying from SUPPLIER and selling on Amazon
-    supplier_margin = calculate_margin(amazon_price, supplier_price, amazon_fees)
+    supplier_margin = calculate_margin(amazon_price, supplier_price, amazon_fees) if amazon_price else {'margin_eur': None, 'margin_percentage': None}
     
     # Margin if buying from GOOGLE and selling on Amazon
-    google_margin = calculate_margin(amazon_price, google_lowest_price, amazon_fees)
+    google_margin = calculate_margin(amazon_price, google_lowest_price, amazon_fees) if (amazon_price and google_lowest_price) else {'margin_eur': None, 'margin_percentage': None}
     
     # Best margin (from cheapest source)
-    best_margin = calculate_margin(amazon_price, cheapest_buy_price, amazon_fees)
+    best_margin = calculate_margin(amazon_price, cheapest_buy_price, amazon_fees) if amazon_price else {'margin_eur': None, 'margin_percentage': None}
     
     # Price differences
-    google_vs_amazon_diff = round(google_lowest_price - amazon_price, 2)  # negative = Google cheaper
-    supplier_vs_google_diff = round(supplier_price - google_lowest_price, 2)  # negative = supplier cheaper
+    google_vs_amazon_diff = round(google_lowest_price - amazon_price, 2) if (google_lowest_price and amazon_price) else None
+    supplier_vs_google_diff = round(supplier_price - google_lowest_price, 2) if google_lowest_price else None
     
     # Update product in database with all comparison data
     update_data = {
