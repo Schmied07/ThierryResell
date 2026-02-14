@@ -1,0 +1,392 @@
+{
+  "timestamp": "2026-02-14T01:54:41.071819",
+  "total_tests": 21,
+  "passed_tests": 17,
+  "failed_tests": 4,
+  "success_rate": 80.95238095238095,
+  "results": [
+    {
+      "name": "Root endpoint",
+      "success": true,
+      "message": "Status 200 (expected 200)",
+      "response_data": {
+        "message": "Resell Corner API",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "name": "Health check",
+      "success": true,
+      "message": "Status 200 (expected 200)",
+      "response_data": {
+        "status": "healthy"
+      }
+    },
+    {
+      "name": "User registration",
+      "success": true,
+      "message": "Status 200 (expected 200)",
+      "response_data": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMjE3MTg5ODAtNWUzZi00YmI4LTg1ZDItMTdiY2ZjZWRmMGUxIiwiZW1haWwiOiJ0ZXN0XzAxNTQzN0ByZXNlbGxjb3JuZXIuY29tIiwiZXhwIjoxNzcxMTIwNDc3fQ.xEuBPDpNiWl7D68Uo_sRIkpNhbX6ZuzYq25q77z8JOs",
+        "user": {
+          "id": "21718980-5e3f-4bb8-85d2-17bcfcedf0e1",
+          "email": "test_015437@resellcorner.com",
+          "name": "Test User 015437"
+        }
+      }
+    },
+    {
+      "name": "User login",
+      "success": true,
+      "message": "Status 200 (expected 200)",
+      "response_data": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMjE3MTg5ODAtNWUzZi00YmI4LTg1ZDItMTdiY2ZjZWRmMGUxIiwiZW1haWwiOiJ0ZXN0XzAxNTQzN0ByZXNlbGxjb3JuZXIuY29tIiwiZXhwIjoxNzcxMTIwNDc3fQ.xEuBPDpNiWl7D68Uo_sRIkpNhbX6ZuzYq25q77z8JOs",
+        "user": {
+          "id": "21718980-5e3f-4bb8-85d2-17bcfcedf0e1",
+          "email": "test_015437@resellcorner.com",
+          "name": "Test User 015437"
+        }
+      }
+    },
+    {
+      "name": "Get current user",
+      "success": true,
+      "message": "Status 200 (expected 200)",
+      "response_data": {
+        "id": "21718980-5e3f-4bb8-85d2-17bcfcedf0e1",
+        "email": "test_015437@resellcorner.com",
+        "name": "Test User 015437",
+        "created_at": "2026-02-14T01:54:37.500630Z"
+      }
+    },
+    {
+      "name": "Invalid login rejection",
+      "success": true,
+      "message": "Status 401 (expected 401)",
+      "response_data": null
+    },
+    {
+      "name": "Create supplier",
+      "success": false,
+      "message": "Status 200 (expected 201) - ",
+      "response_data": {}
+    },
+    {
+      "name": "Get all suppliers",
+      "success": true,
+      "message": "Status 200 (expected 200)",
+      "response_data": null
+    },
+    {
+      "name": "Create alert",
+      "success": false,
+      "message": "Status 200 (expected 201) - ",
+      "response_data": {}
+    },
+    {
+      "name": "Get all alerts",
+      "success": true,
+      "message": "Status 200 (expected 200)",
+      "response_data": null
+    },
+    {
+      "name": "Create favorite",
+      "success": false,
+      "message": "Status 200 (expected 201) - ",
+      "response_data": {}
+    },
+    {
+      "name": "Get all favorites",
+      "success": true,
+      "message": "Status 200 (expected 200)",
+      "response_data": null
+    },
+    {
+      "name": "Text search",
+      "success": true,
+      "message": "Status 200 (expected 200)",
+      "response_data": {
+        "product_name": "iPhone 15 Pro Max",
+        "image_url": "https://via.placeholder.com/300x300?text=iPhone+15+Pro+Max",
+        "detected_labels": [
+          "iPhone 15 Pro Max",
+          "product",
+          "item"
+        ],
+        "comparisons": [
+          {
+            "supplier": "Test Amazon Supplier",
+            "supplier_url": "https://amazon.com",
+            "price": 55.26,
+            "currency": "EUR",
+            "availability": "In Stock",
+            "shipping": 0.0,
+            "total_price": 55.26,
+            "profit_margin": 28.6
+          }
+        ],
+        "lowest_price": 55.26,
+        "highest_price": 55.26,
+        "average_price": 55.26
+      }
+    },
+    {
+      "name": "Image search",
+      "success": true,
+      "message": "Status 200 (expected 200)",
+      "response_data": {
+        "product_name": "Detected Product",
+        "image_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQot2wAAAABJRU5ErkJggg==...",
+        "detected_labels": [
+          "Product",
+          "Item",
+          "Object"
+        ],
+        "comparisons": [
+          {
+            "supplier": "Test Amazon Supplier",
+            "supplier_url": "https://amazon.com",
+            "price": 136.17,
+            "currency": "EUR",
+            "availability": "Pre-order",
+            "shipping": 0.0,
+            "total_price": 136.17,
+            "profit_margin": 14.5
+          }
+        ],
+        "lowest_price": 136.17,
+        "highest_price": 136.17,
+        "average_price": 136.17
+      }
+    },
+    {
+      "name": "Get search history",
+      "success": true,
+      "message": "Status 200 (expected 200)",
+      "response_data": null
+    },
+    {
+      "name": "Get API keys status",
+      "success": true,
+      "message": "Status 200 (expected 200)",
+      "response_data": {
+        "google_api_key_set": false,
+        "google_search_engine_id_set": false,
+        "keepa_api_key_set": false
+      }
+    },
+    {
+      "name": "Update API keys",
+      "success": true,
+      "message": "Status 200 (expected 200)",
+      "response_data": {
+        "google_api_key_set": true,
+        "google_search_engine_id_set": true,
+        "keepa_api_key_set": true
+      }
+    },
+    {
+      "name": "Clear API key",
+      "success": true,
+      "message": "Status 200 (expected 200)",
+      "response_data": null
+    },
+    {
+      "name": "Get dashboard stats",
+      "success": true,
+      "message": "Status 200 (expected 200)",
+      "response_data": {
+        "suppliers_count": 1,
+        "active_alerts_count": 1,
+        "favorites_count": 1,
+        "total_searches": 2,
+        "recent_searches": [
+          {
+            "id": "fff63ebf-dcca-43b9-a1ae-5830420c3a2f",
+            "user_id": "21718980-5e3f-4bb8-85d2-17bcfcedf0e1",
+            "query": "Detected Product",
+            "search_type": "image",
+            "results_count": 1,
+            "lowest_price": 136.17,
+            "created_at": "2026-02-14T01:54:39.443745+00:00"
+          },
+          {
+            "id": "bdc13d94-76c6-482f-9192-b62ac7db540b",
+            "user_id": "21718980-5e3f-4bb8-85d2-17bcfcedf0e1",
+            "query": "iPhone 15 Pro Max",
+            "search_type": "text",
+            "results_count": 1,
+            "lowest_price": 55.26,
+            "created_at": "2026-02-14T01:54:39.329230+00:00"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Keepa product data",
+      "success": false,
+      "message": "Status 520 (expected 200) - <!DOCTYPE html>\n<!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if I",
+      "response_data": {}
+    },
+    {
+      "name": "Get price history",
+      "success": true,
+      "message": "Status 200 (expected 200)",
+      "response_data": {
+        "product_id": "test-product-123",
+        "history": [
+          {
+            "date": "2026-01-15T01:54:41.039660+00:00",
+            "price": 143.71,
+            "supplier": "Amazon"
+          },
+          {
+            "date": "2026-01-16T01:54:41.039680+00:00",
+            "price": 157.45,
+            "supplier": "AliExpress"
+          },
+          {
+            "date": "2026-01-17T01:54:41.039685+00:00",
+            "price": 153.77,
+            "supplier": "eBay"
+          },
+          {
+            "date": "2026-01-18T01:54:41.039689+00:00",
+            "price": 137.79,
+            "supplier": "eBay"
+          },
+          {
+            "date": "2026-01-19T01:54:41.039692+00:00",
+            "price": 146.28,
+            "supplier": "Amazon"
+          },
+          {
+            "date": "2026-01-20T01:54:41.039696+00:00",
+            "price": 139.55,
+            "supplier": "Amazon"
+          },
+          {
+            "date": "2026-01-21T01:54:41.039700+00:00",
+            "price": 161.84,
+            "supplier": "Amazon"
+          },
+          {
+            "date": "2026-01-22T01:54:41.039704+00:00",
+            "price": 141.23,
+            "supplier": "AliExpress"
+          },
+          {
+            "date": "2026-01-23T01:54:41.039708+00:00",
+            "price": 146.14,
+            "supplier": "Amazon"
+          },
+          {
+            "date": "2026-01-24T01:54:41.039711+00:00",
+            "price": 160.66,
+            "supplier": "eBay"
+          },
+          {
+            "date": "2026-01-25T01:54:41.039714+00:00",
+            "price": 152.23,
+            "supplier": "eBay"
+          },
+          {
+            "date": "2026-01-26T01:54:41.039717+00:00",
+            "price": 154.13,
+            "supplier": "AliExpress"
+          },
+          {
+            "date": "2026-01-27T01:54:41.039720+00:00",
+            "price": 143.1,
+            "supplier": "eBay"
+          },
+          {
+            "date": "2026-01-28T01:54:41.039723+00:00",
+            "price": 134.53,
+            "supplier": "Amazon"
+          },
+          {
+            "date": "2026-01-29T01:54:41.039726+00:00",
+            "price": 133.52,
+            "supplier": "AliExpress"
+          },
+          {
+            "date": "2026-01-30T01:54:41.039728+00:00",
+            "price": 138.91,
+            "supplier": "eBay"
+          },
+          {
+            "date": "2026-01-31T01:54:41.039731+00:00",
+            "price": 151.66,
+            "supplier": "Amazon"
+          },
+          {
+            "date": "2026-02-01T01:54:41.039733+00:00",
+            "price": 137.65,
+            "supplier": "AliExpress"
+          },
+          {
+            "date": "2026-02-02T01:54:41.039736+00:00",
+            "price": 134.93,
+            "supplier": "AliExpress"
+          },
+          {
+            "date": "2026-02-03T01:54:41.039739+00:00",
+            "price": 134.91,
+            "supplier": "Amazon"
+          },
+          {
+            "date": "2026-02-04T01:54:41.039741+00:00",
+            "price": 159.45,
+            "supplier": "AliExpress"
+          },
+          {
+            "date": "2026-02-05T01:54:41.039744+00:00",
+            "price": 144.94,
+            "supplier": "Amazon"
+          },
+          {
+            "date": "2026-02-06T01:54:41.039746+00:00",
+            "price": 155.13,
+            "supplier": "Amazon"
+          },
+          {
+            "date": "2026-02-07T01:54:41.039749+00:00",
+            "price": 148.8,
+            "supplier": "eBay"
+          },
+          {
+            "date": "2026-02-08T01:54:41.039751+00:00",
+            "price": 147.61,
+            "supplier": "AliExpress"
+          },
+          {
+            "date": "2026-02-09T01:54:41.039754+00:00",
+            "price": 158.2,
+            "supplier": "Amazon"
+          },
+          {
+            "date": "2026-02-10T01:54:41.039757+00:00",
+            "price": 134.2,
+            "supplier": "AliExpress"
+          },
+          {
+            "date": "2026-02-11T01:54:41.039759+00:00",
+            "price": 135.45,
+            "supplier": "eBay"
+          },
+          {
+            "date": "2026-02-12T01:54:41.039762+00:00",
+            "price": 139.04,
+            "supplier": "AliExpress"
+          },
+          {
+            "date": "2026-02-13T01:54:41.039765+00:00",
+            "price": 136.48,
+            "supplier": "AliExpress"
+          }
+        ]
+      }
+    }
+  ]
+}
