@@ -101,3 +101,274 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Resell Corner - A product price comparison and reselling platform. Users can register/login, search products by text or image, manage suppliers, set price alerts, save favorites, and configure API keys (Google, Keepa). The app uses mock data when API keys are not configured."
+
+backend:
+  - task: "User Registration"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "POST /api/auth/register - Creates new user with email, password, name"
+
+  - task: "User Login"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "POST /api/auth/login - Login with email/password, returns JWT token"
+
+  - task: "Get Current User"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "GET /api/auth/me - Returns current user info with JWT auth"
+
+  - task: "API Keys Management"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "GET/PUT /api/settings/api-keys - Manage Google and Keepa API keys"
+
+  - task: "Suppliers CRUD"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "POST/GET/PUT/DELETE /api/suppliers - Full CRUD for suppliers"
+
+  - task: "Price Alerts CRUD"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "POST/GET/PUT/DELETE /api/alerts - CRUD for price alerts with toggle"
+
+  - task: "Favorites CRUD"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "POST/GET/DELETE /api/favorites - CRUD for product favorites"
+
+  - task: "Text Search"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "POST /api/search/text - Search products by text, returns mock price comparisons"
+
+  - task: "Image Search"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "POST /api/search/image - Search by image upload, returns mock comparisons"
+
+  - task: "Dashboard Stats"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "GET /api/dashboard/stats - Returns counts and recent searches"
+
+  - task: "Search History"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "GET /api/history/searches - Returns user search history"
+
+  - task: "Health Check"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "low"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "GET /api/health - Health check endpoint"
+
+frontend:
+  - task: "Landing Page"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/LandingPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "Landing page at /"
+
+  - task: "Auth Page (Login/Register)"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/AuthPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "Auth page at /auth with login and register"
+
+  - task: "Dashboard Page"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Dashboard.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "Dashboard at /dashboard (protected)"
+
+  - task: "Search Results Page"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/SearchResults.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "Search page at /search (protected)"
+
+  - task: "Suppliers Page"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Suppliers.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "Suppliers management at /suppliers (protected)"
+
+  - task: "Alerts Page"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Alerts.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "Price alerts at /alerts (protected)"
+
+  - task: "Favorites Page"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Favorites.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "Favorites at /favorites (protected)"
+
+  - task: "Settings Page"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Settings.jsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "Settings at /settings (protected)"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "User Registration"
+    - "User Login"
+    - "Get Current User"
+    - "Suppliers CRUD"
+    - "Price Alerts CRUD"
+    - "Favorites CRUD"
+    - "Text Search"
+    - "Dashboard Stats"
+    - "Health Check"
+    - "Search History"
+    - "API Keys Management"
+  stuck_tasks: []
+  test_all: true
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "main"
+    - message: "Application is Resell Corner. Backend is FastAPI on port 8001, Frontend is React on port 3000. Backend uses MongoDB. All endpoints require JWT auth except /api/auth/register, /api/auth/login, /api/health, and /api/. Please test all backend endpoints thoroughly. Register a user first, then use the token for authenticated endpoints. Test CRUD operations for suppliers, alerts, and favorites. Test text search. Backend URL for testing: http://localhost:8001"
