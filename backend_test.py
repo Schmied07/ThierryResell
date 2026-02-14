@@ -50,12 +50,21 @@ class BackendTester:
             
             # Try to parse JSON response
             try:
-                result = response.json()
+                parsed_response = response.json()
             except:
-                result = {"text": response.text, "status_code": response.status_code}
-                
-            result["status_code"] = response.status_code
-            result["success"] = 200 <= response.status_code < 300
+                parsed_response = {"text": response.text}
+            
+            # If response is a list, wrap it in a dict
+            if isinstance(parsed_response, list):
+                result = {
+                    "response": parsed_response,
+                    "status_code": response.status_code,
+                    "success": 200 <= response.status_code < 300
+                }
+            else:
+                result = parsed_response
+                result["status_code"] = response.status_code
+                result["success"] = 200 <= response.status_code < 300
             
             return result
             
