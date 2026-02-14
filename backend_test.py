@@ -385,8 +385,13 @@ class BackendTester:
             self.test_text_search()
             self.test_dashboard_stats()
             self.test_search_history()
+            self.test_keepa_integration()
+            self.test_price_history()
         else:
             print("❌ Unable to authenticate - skipping authenticated endpoint tests")
+        
+        # Test non-authenticated endpoints
+        self.test_root_endpoint()
         
         # Print summary
         print("=" * 60)
