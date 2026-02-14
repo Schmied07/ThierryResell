@@ -50,10 +50,12 @@ const Catalog = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize] = useState(50);
   const [totalProducts, setTotalProducts] = useState(0);
+  const [apiKeysConfigured, setApiKeysConfigured] = useState(false);
 
   useEffect(() => {
     fetchStats();
     fetchProducts();
+    fetchApiKeyStatus();
   }, [currentPage, selectedBrand, selectedCategory, minMargin, comparedOnly, searchQuery]);
 
   const fetchStats = async () => {
