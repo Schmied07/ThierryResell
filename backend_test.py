@@ -602,6 +602,9 @@ class BackendTester:
             self.test_search_history()
             self.test_keepa_integration()
             self.test_price_history()
+            
+            # NEW: Test catalog system
+            self.run_catalog_tests()
         else:
             print("❌ Unable to authenticate - skipping authenticated endpoint tests")
         
