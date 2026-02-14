@@ -86,21 +86,22 @@ const SearchResults = () => {
 
   if (!results) return null;
 
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-zinc-900/95 backdrop-blur border border-zinc-800 rounded-lg p-3 shadow-xl">
-          <p className="text-zinc-400 text-sm mb-2">{label}</p>
-          {payload.map((entry, index) => (
-            <p key={index} className="text-sm font-mono" style={{ color: entry.color }}>
-              {entry.name}: {entry.value.toFixed(2)}€
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
+  // Temporarily commented out due to compilation issue
+  // const CustomTooltip = ({ active, payload, label }) => {
+  //   if (active && payload && payload.length) {
+  //     return (
+  //       <div className="bg-zinc-900/95 backdrop-blur border border-zinc-800 rounded-lg p-3 shadow-xl">
+  //         <p className="text-zinc-400 text-sm mb-2">{label}</p>
+  //         {payload.map((entry, index) => (
+  //           <p key={index} className="text-sm font-mono" style={{ color: entry.color }}>
+  //             {entry.name}: {entry.value.toFixed(2)}€
+  //           </p>
+  //         ))}
+  //       </div>
+  //     );
+  //   }
+  //   return null;
+  // };
 
   return (
     <div className="min-h-screen bg-zinc-950 pt-20 pb-12">
