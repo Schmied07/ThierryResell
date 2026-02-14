@@ -22,6 +22,7 @@ const Navbar = () => {
 
   const navItems = [
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { path: "/catalog", label: "Catalogue", icon: FileSpreadsheet },
     { path: "/suppliers", label: "Fournisseurs", icon: Package },
     { path: "/alerts", label: "Alertes", icon: Bell },
     { path: "/favorites", label: "Favoris", icon: Heart },
