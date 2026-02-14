@@ -262,6 +262,35 @@ class SearchResult(BaseModel):
     amazon_reference_price: Optional[float] = None
     keepa_data: Optional[Dict[str, Any]] = None
 
+# ==================== CATALOG MODELS ====================
+
+class CatalogProduct(BaseModel):
+    id: str
+    user_id: str
+    gtin: str
+    name: str
+    category: str
+    brand: str
+    supplier_price_gbp: float
+    supplier_price_eur: float
+    inventory: str
+    number_of_offers: int
+    product_link: Optional[str] = None
+    amazon_price_eur: Optional[float] = None
+    google_price_eur: Optional[float] = None
+    best_price_eur: Optional[float] = None
+    margin_eur: Optional[float] = None
+    margin_percentage: Optional[float] = None
+    last_compared_at: Optional[datetime] = None
+    created_at: datetime
+
+class CatalogStats(BaseModel):
+    total_products: int
+    compared_products: int
+    total_potential_margin: float
+    avg_margin_percentage: float
+    best_opportunity_margin: float
+
 # ==================== AUTH HELPERS ====================
 
 def hash_password(password: str) -> str:
