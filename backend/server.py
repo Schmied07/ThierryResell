@@ -243,6 +243,8 @@ class PriceComparisonResult(BaseModel):
     shipping: Optional[float] = None
     total_price: float
     profit_margin: Optional[float] = None
+    is_user_supplier: bool = False
+    supplier_category: Optional[str] = None
 
 class SearchResult(BaseModel):
     product_name: str
@@ -252,6 +254,9 @@ class SearchResult(BaseModel):
     lowest_price: Optional[float] = None
     highest_price: Optional[float] = None
     average_price: Optional[float] = None
+    category: Optional[str] = None
+    amazon_reference_price: Optional[float] = None
+    keepa_data: Optional[Dict[str, Any]] = None
 
 # ==================== AUTH HELPERS ====================
 
