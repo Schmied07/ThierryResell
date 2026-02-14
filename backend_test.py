@@ -357,6 +357,221 @@ class BackendTester:
         else:
             self.log_test("Root API Endpoint", False, f"Response: {response}")
     
+    def test_catalog_import(self):
+        """Test POST /api/catalog/import - Import Excel catalog file"""
+        try:
+            with open('/app/catalog_sample.xlsx', 'rb') as f:
+                files = {'file': ('catalog_sample.xlsx', f, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
+                response = self.make_request('POST', '/catalog/import', files=files)
+            
+            if response.get("success") and "imported" in response:
+                imported_count = response.get("imported", 0)
+                exchange_rate = response.get("exchange_rate", "N/A")
+                self.log_test("Catalog Import", True, f"Imported {imported_count} products, GBP->EUR rate: {exchange_rate}")
+                return imported_count > 0
+            else:
+                self.log_test("Catalog Import", False, f"Response: {response}")
+                return False
+        except Exception as e:
+            self.log_test("Catalog Import", False, f"Error: {str(e)}")
+            return False
+    
+    def test_catalog_stats(self):
+        """Test GET /api/catalog/stats"""
+        response = self.make_request('GET', '/catalog/stats')
+        
+        if (response.get("success") and 
+            "total_products" in response and 
+            "compared_products" in response and
+            "brands" in response and
+            "categories" in response):
+            total = response.get("total_products", 0)
+            compared = response.get("compared_products", 0)
+            brands_count = len(response.get("brands", []))
+            categories_count = len(response.get("categories", []))
+            self.log_test("Catalog Stats", True, f"Total: {total}, Compared: {compared}, Brands: {brands_count}, Categories: {categories_count}")
+            return total > 0
+        else:
+            self.log_test("Catalog Stats", False, f"Response: {response}")
+            return False
+    
+    def test_catalog_products_list(self):
+        """Test GET /api/catalog/products with pagination and filters"""
+        # Test basic list
+        response = self.make_request('GET', '/catalog/products?skip=0&limit=10')
+        
+        if (response.get("success") and 
+            "products" in response and 
+            "total" in response):
+            products = response.get("products", [])
+            total = response.get("total", 0)
+            self.log_test("Catalog Products List", True, f"Retrieved {len(products)} of {total} products")
+            
+            if products:
+                # Test with brand filter
+                first_product = products[0]
+                brand = first_product.get("brand")
+                if brand:
+                    brand_response = self.make_request('GET', f'/catalog/products?brand={brand}&limit=5')
+                    if brand_response.get("success"):
+                        brand_products = brand_response.get("products", [])
+                        self.log_test("Catalog Products Brand Filter", True, f"Found {len(brand_products)} products for brand '{brand}'")
+                    else:
+                        self.log_test("Catalog Products Brand Filter", False, f"Response: {brand_response}")
+                
+                # Test with search
+                search_response = self.make_request('GET', '/catalog/products?search=beauty&limit=5')
+                if search_response.get("success"):
+                    search_products = search_response.get("products", [])
+                    self.log_test("Catalog Products Search", True, f"Found {len(search_products)} products for search 'beauty'")
+                else:
+                    self.log_test("Catalog Products Search", False, f"Response: {search_response}")
+                
+                return first_product.get("id")  # Return product ID for further testing
+            return None
+        else:
+            self.log_test("Catalog Products List", False, f"Response: {response}")
+            return None
+    
+    def test_single_product_compare(self, product_id: str):
+        """Test POST /api/catalog/compare/{product_id}"""
+        if not product_id:
+            self.log_test("Single Product Compare", False, "No product ID provided")
+            return False
+        
+        response = self.make_request('POST', f'/catalog/compare/{product_id}')
+        
+        if (response.get("success") and 
+            "product_id" in response and 
+            "supplier_price_eur" in response):
+            amazon_price = response.get("amazon_price_eur")
+            margin = response.get("margin_eur")
+            margin_pct = response.get("margin_percentage")
+            
+            details = f"Amazon: €{amazon_price}, Margin: €{margin} ({margin_pct}%)" if amazon_price else "No Amazon price found (expected for some products)"
+            self.log_test("Single Product Compare", True, details)
+            return True
+        else:
+            self.log_test("Single Product Compare", False, f"Response: {response}")
+            return False
+    
+    def test_batch_compare(self, product_ids: list):
+        """Test POST /api/catalog/compare-batch"""
+        if not product_ids or len(product_ids) < 2:
+            self.log_test("Batch Compare", False, "Need at least 2 product IDs")
+            return False
+        
+        # Take first 3 products for batch test
+        batch_ids = product_ids[:3]
+        response = self.make_request('POST', '/catalog/compare-batch', batch_ids)
+        
+        if (response.get("success") and 
+            "success" in response and 
+            "failed" in response):
+            success_count = response.get("success", 0)
+            failed_count = response.get("failed", 0)
+            self.log_test("Batch Compare", True, f"Success: {success_count}, Failed: {failed_count}")
+            return True
+        else:
+            self.log_test("Batch Compare", False, f"Response: {response}")
+            return False
+    
+    def test_catalog_opportunities(self):
+        """Test GET /api/catalog/opportunities"""
+        response = self.make_request('GET', '/catalog/opportunities?limit=10')
+        
+        if (response.get("success") and 
+            "opportunities" in response):
+            opportunities = response.get("opportunities", [])
+            total = response.get("total", 0)
+            self.log_test("Catalog Opportunities", True, f"Found {len(opportunities)} opportunities (total: {total})")
+            
+            # Test with margin filter
+            margin_response = self.make_request('GET', '/catalog/opportunities?min_margin_percentage=10&limit=5')
+            if margin_response.get("success"):
+                margin_opportunities = margin_response.get("opportunities", [])
+                self.log_test("Catalog Opportunities Margin Filter", True, f"Found {len(margin_opportunities)} opportunities with >10% margin")
+            else:
+                self.log_test("Catalog Opportunities Margin Filter", False, f"Response: {margin_response}")
+            
+            return True
+        else:
+            self.log_test("Catalog Opportunities", False, f"Response: {response}")
+            return False
+    
+    def test_catalog_export(self):
+        """Test GET /api/catalog/export"""
+        response = self.make_request('GET', '/catalog/export')
+        
+        # For file download, we expect different response handling
+        if response.get("status_code") == 200:
+            # Check if it's an Excel file by content type or content
+            content = response.get("text", "")
+            if "xlsx" in str(response) or len(content) > 1000:  # Excel files are typically large
+                self.log_test("Catalog Export", True, "Excel file exported successfully")
+                return True
+            else:
+                self.log_test("Catalog Export", False, f"Unexpected content: {content[:100]}...")
+                return False
+        else:
+            self.log_test("Catalog Export", False, f"Response: {response}")
+            return False
+    
+    def test_catalog_delete(self):
+        """Test DELETE /api/catalog/products - Delete all catalog products"""
+        response = self.make_request('DELETE', '/catalog/products')
+        
+        if response.get("success") and "deleted" in response:
+            deleted_count = response.get("deleted", 0)
+            self.log_test("Delete All Catalog Products", True, f"Deleted {deleted_count} products")
+            return True
+        else:
+            self.log_test("Delete All Catalog Products", False, f"Response: {response}")
+            return False
+    
+    def run_catalog_tests(self):
+        """Run all catalog-specific tests"""
+        print("\n" + "=" * 60)
+        print("🗂️  CATALOG SYSTEM TESTS")
+        print("=" * 60)
+        
+        # Step 1: Import catalog
+        import_success = self.test_catalog_import()
+        if not import_success:
+            print("❌ Catalog import failed - skipping remaining catalog tests")
+            return False
+        
+        # Step 2: Get catalog stats
+        stats_success = self.test_catalog_stats()
+        
+        # Step 3: List products and get IDs for further testing
+        product_id = self.test_catalog_products_list()
+        
+        # Get multiple product IDs for batch testing
+        products_response = self.make_request('GET', '/catalog/products?limit=5')
+        product_ids = []
+        if products_response.get("success") and "products" in products_response:
+            product_ids = [p.get("id") for p in products_response.get("products", []) if p.get("id")]
+        
+        # Step 4: Single product comparison
+        if product_id:
+            self.test_single_product_compare(product_id)
+        
+        # Step 5: Batch comparison
+        if len(product_ids) >= 2:
+            self.test_batch_compare(product_ids)
+        
+        # Step 6: Test opportunities
+        self.test_catalog_opportunities()
+        
+        # Step 7: Test export
+        self.test_catalog_export()
+        
+        # Step 8: Clean up - delete all products (optional, comment out if you want to keep data)
+        # self.test_catalog_delete()
+        
+        return True
+    
     def run_all_tests(self):
         """Run all backend tests"""
         print(f"🚀 Starting Resell Corner Backend API Tests")
