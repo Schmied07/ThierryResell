@@ -19,6 +19,7 @@ import pandas as pd
 import io
 from fastapi.responses import StreamingResponse
 import xlsxwriter
+import re
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
