@@ -414,16 +414,12 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Landing Page"
-    - "Auth Page (Login/Register)"
-    - "Dashboard Page"
-    - "Search Results Page"
     - "Suppliers Page"
     - "Alerts Page"
-    - "Favorites Page"
-    - "Settings Page"
-  stuck_tasks: []
-  test_all: true
+  stuck_tasks:
+    - "Suppliers Page"
+    - "Alerts Page"
+  test_all: false
   test_priority: "high_first"
 
 agent_communication:
@@ -431,3 +427,5 @@ agent_communication:
     - message: "Application is Resell Corner. Backend is FastAPI on port 8001, Frontend is React on port 3000. Backend uses MongoDB. All endpoints require JWT auth except /api/auth/register, /api/auth/login, /api/health, and /api/. Please test all backend endpoints thoroughly. Register a user first, then use the token for authenticated endpoints. Test CRUD operations for suppliers, alerts, and favorites. Test text search. Backend URL for testing: http://localhost:8001"
     - agent: "testing"
     - message: "Backend testing completed successfully! Tested 25 endpoints with 22/25 passing. Core functionality working: Authentication (login/register/me), API keys management, full CRUD for suppliers/alerts/favorites, text search with MOCK data, dashboard stats, and search history. Minor issues: PUT /alerts/{id} not implemented (only toggle available), Keepa endpoint has infrastructure error (520). All critical features operational. Authentication working perfectly with JWT tokens. MOCK data being used appropriately for search when API keys not configured."
+    - agent: "testing"
+    - message: "Frontend testing completed with most features working but found two critical issues: 1) Suppliers Page - Adding a supplier works (toast notification appears) but the supplier doesn't appear in the list. 2) Alerts Page - Adding an alert works (toast notification appears) but the alert doesn't appear in the list. All other features are working properly: Landing Page, Auth (registration/login/logout), Dashboard, Search Results, Favorites, and Settings pages all function as expected. The app displays mock data for search results and properly shows the demo mode banner in settings."
