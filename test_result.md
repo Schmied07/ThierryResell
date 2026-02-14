@@ -638,8 +638,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Suppliers Page"
-    - "Alerts Page"
+    - "Catalog export - new columns for comparison data"
   stuck_tasks:
     - "Suppliers Page"
     - "Alerts Page"
@@ -655,3 +654,5 @@ agent_communication:
     - message: "Frontend testing completed with most features working but found two critical issues: 1) Suppliers Page - Adding a supplier works (toast notification appears) but the supplier doesn't appear in the list. 2) Alerts Page - Adding an alert works (toast notification appears) but the alert doesn't appear in the list. All other features are working properly: Landing Page, Auth (registration/login/logout), Dashboard, Search Results, Favorites, and Settings pages all function as expected. The app displays mock data for search results and properly shows the demo mode banner in settings."
     - agent: "main"
     - message: "NEW FEATURE IMPLEMENTED: Catalog Import & Price Comparison System. Added complete backend API with 8 new endpoints for importing Excel catalogs, comparing prices with Amazon (via Keepa) and Google Shopping, calculating margins, and exporting results. Frontend includes new /catalog page with Import, Products, and Opportunities tabs. Features include: Excel import with GBP to EUR conversion, batch price comparison, margin calculation, filtering, pagination, and Excel export. Ready for testing with real catalog file available at /app/catalog_sample.xlsx. User MUST have Keepa and Google API keys configured for real price data, otherwise comparison will show limited results."
+    - agent: "testing"
+    - message: "CATALOG COMPARISON BACKEND TESTING COMPLETED SUCCESSFULLY! All 3 high-priority catalog endpoints are working correctly: 1) GET /api/catalog/stats - Returns proper stats including new fields (profitable_products, amazon_fee_percentage=15.0). 2) POST /api/catalog/compare/{product_id} - Handles nonexistent products correctly (404), batch compare works. 3) GET /api/catalog/opportunities - Returns proper structure. MOCK DATA functionality confirmed working when no API keys configured. Authentication properly enforced (403/401). All 9 test cases passed. Only remaining task: Catalog export endpoint (low priority)."
