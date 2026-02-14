@@ -809,54 +809,67 @@ const ProductComparisonDetail = ({ product, compareResult }) => {
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Fournisseur vs Google */}
-            <div className="space-y-2">
-              <p className="text-zinc-400 text-sm font-medium">Fournisseur vs Google :</p>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <Store className="w-4 h-4 text-blue-400" />
-                  <span className="text-white">{supplierPrice?.toFixed(2)}€</span>
+            {googlePrice ? (
+              <div className="space-y-2">
+                <p className="text-zinc-400 text-sm font-medium">Fournisseur vs Google :</p>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Store className="w-4 h-4 text-blue-400" />
+                    <span className="text-white">{supplierPrice?.toFixed(2)}€</span>
+                  </div>
+                  <span className="text-zinc-500">vs</span>
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-purple-400" />
+                    <span className="text-white">{googlePrice.toFixed(2)}€</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-zinc-500" />
+                  {supplierPrice <= googlePrice ? (
+                    <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                      Fournisseur - cher ({(googlePrice - supplierPrice).toFixed(2)}€)
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                      Google - cher ({(supplierPrice - googlePrice).toFixed(2)}€)
+                    </Badge>
+                  )}
                 </div>
-                <span className="text-zinc-500">vs</span>
-                <div className="flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-purple-400" />
-                  <span className="text-white">{googlePrice?.toFixed(2)}€</span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-zinc-500" />
-                {supplierPrice <= googlePrice ? (
-                  <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                    Fournisseur - cher ({(googlePrice - supplierPrice).toFixed(2)}€)
-                  </Badge>
-                ) : (
-                  <Badge className="bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                    Google - cher ({(supplierPrice - googlePrice).toFixed(2)}€)
-                  </Badge>
-                )}
               </div>
-            </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-zinc-400 text-sm font-medium">Fournisseur vs Google :</p>
+                <p className="text-zinc-500 text-sm">Prix Google non trouvé pour ce produit</p>
+              </div>
+            )}
 
             {/* Meilleure marge Amazon */}
             <div className="space-y-2">
               <p className="text-zinc-400 text-sm font-medium">Meilleure marge (revente Amazon) :</p>
-              <div className="flex items-center gap-3">
-                <div className={`px-4 py-2 rounded-lg ${bestMargin >= 0 ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
-                  <p className={`text-2xl font-bold ${bestMargin >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {bestMargin >= 0 ? '+' : ''}{bestMargin?.toFixed(2)}€
-                  </p>
-                  <p className="text-zinc-400 text-xs">
-                    {bestMarginPct?.toFixed(1)}% marge nette
-                    {cheapestSource && ` (via ${cheapestSource === 'supplier' ? 'fournisseur' : 'Google'})`}
-                  </p>
+              {bestMargin != null ? (
+                <div className="flex items-center gap-3">
+                  <div className={`px-4 py-2 rounded-lg ${bestMargin >= 0 ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
+                    <p className={`text-2xl font-bold ${bestMargin >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {bestMargin >= 0 ? '+' : ''}{bestMargin.toFixed(2)}€
+                    </p>
+                    <p className="text-zinc-400 text-xs">
+                      {bestMarginPct?.toFixed(1)}% marge nette
+                      {cheapestSource && ` (via ${cheapestSource === 'supplier' ? 'fournisseur' : 'Google'})`}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <p className="text-zinc-500 text-sm">Impossible de calculer (données manquantes)</p>
+              )}
             </div>
           </div>
 
           {/* Calculation breakdown */}
-          <div className="mt-4 pt-4 border-t border-zinc-700/50">
-            <p className="text-zinc-500 text-xs">
-              Calcul : {amazonPrice?.toFixed(2)}€ (Amazon) - {(product.cheapest_buy_price_eur || Math.min(supplierPrice, googlePrice || supplierPrice))?.toFixed(2)}€ (achat) - {amazonFees?.toFixed(2)}€ (frais 15%) = <strong className={bestMargin >= 0 ? 'text-green-400' : 'text-red-400'}>{bestMargin?.toFixed(2)}€</strong>
-            </p>
-          </div>
+          {bestMargin != null && (
+            <div className="mt-4 pt-4 border-t border-zinc-700/50">
+              <p className="text-zinc-500 text-xs">
+                Calcul : {amazonPrice?.toFixed(2)}€ (Amazon) - {(product.cheapest_buy_price_eur || supplierPrice)?.toFixed(2)}€ (achat) - {amazonFees?.toFixed(2)}€ (frais 15%) = <strong className={bestMargin >= 0 ? 'text-green-400' : 'text-red-400'}>{bestMargin.toFixed(2)}€</strong>
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
