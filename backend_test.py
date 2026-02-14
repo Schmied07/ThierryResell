@@ -326,6 +326,37 @@ class BackendTester:
         else:
             self.log_test("Search History", False, f"Response: {response}")
     
+    def test_keepa_integration(self):
+        """Test GET /api/keepa/product/{asin}"""
+        # Test with a sample ASIN
+        asin = "B08N5WRWNW"  # Example ASIN
+        response = self.make_request('GET', f'/keepa/product/{asin}')
+        
+        if response.get("success") and "asin" in response:
+            mock_indicator = " (mock data)" if response.get("mock_data") else ""
+            self.log_test("Keepa Product Data", True, f"Retrieved product data for {asin}{mock_indicator}")
+        else:
+            self.log_test("Keepa Product Data", False, f"Response: {response}")
+    
+    def test_price_history(self):
+        """Test GET /api/history/price/{product_id}"""
+        product_id = "test-product-123"
+        response = self.make_request('GET', f'/history/price/{product_id}')
+        
+        if response.get("success") and "history" in response:
+            self.log_test("Price History", True, f"Retrieved price history for product")
+        else:
+            self.log_test("Price History", False, f"Response: {response}")
+    
+    def test_root_endpoint(self):
+        """Test GET /api/"""
+        response = self.make_request('GET', '/')
+        
+        if response.get("success") and "message" in response:
+            self.log_test("Root API Endpoint", True, f"API info: {response.get('message')}")
+        else:
+            self.log_test("Root API Endpoint", False, f"Response: {response}")
+    
     def run_all_tests(self):
         """Run all backend tests"""
         print(f"🚀 Starting Resell Corner Backend API Tests")
