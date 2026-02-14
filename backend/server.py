@@ -1045,7 +1045,18 @@ async def import_catalog(
                     skipped_count += 1
                     continue
                 
-                price_gbp = float(row[column_mapping['Price']])
+                raw_price = row[column_mapping['Price']]
+                if pd.isna(raw_price) or str(raw_price).strip() == '':
+                    skipped_count += 1
+                    continue
+                try:
+                    price_gbp = float(raw_price)
+                except (ValueError, TypeError):
+                    skipped_count += 1
+                    continue
+                if price_gbp <= 0:
+                    skipped_count += 1
+                    continue
                 price_eur = round(price_gbp * exchange_rate, 2)
                 
                 # Get additional fields with defaults
