@@ -102,6 +102,113 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
+user_problem_statement: "Quand on ajoute un catalogue fournisseur, obtenir le prix Amazon via Keepa API et le prix le plus bas via Google API. Comparer Google vs Amazon, Amazon vs fournisseur. Calculer la marge nette si on achète pour revendre sur Amazon (avec frais Amazon 15% TTC)."
+
+backend:
+  - task: "Catalog compare endpoint - Keepa Amazon price + Google lowest price + margin calculation"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated compare_catalog_product endpoint with: mock data fallback, Amazon fees (15%), supplier/google/best margin calculations, cheapest source detection"
+
+  - task: "Catalog stats endpoint - updated with new margin fields"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated stats to use amazon_margin_eur field and count profitable products"
+
+  - task: "Catalog opportunities endpoint - sorted by Amazon margin"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated to use amazon_margin_eur for sorting and filtering"
+
+  - task: "Catalog export - new columns for comparison data"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "low"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added columns: google_lowest_price, cheapest_source, amazon_fees, supplier/google margins"
+
+frontend:
+  - task: "Catalog page - comparison table with all price columns"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Catalog.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "New table with supplier/Amazon/Google prices, cheapest source badge, fees, net margin"
+
+  - task: "Product comparison detail view (expandable rows)"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Catalog.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Expandable detail with 3 price cards, comparison summary, calculation breakdown"
+
+  - task: "Opportunities tab - updated with new margin logic"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Catalog.jsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated with supplier/Amazon/Google prices, fees, cheapest source badges"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Catalog compare endpoint - Keepa Amazon price + Google lowest price + margin calculation"
+    - "Catalog stats endpoint - updated with new margin fields"
+    - "Catalog opportunities endpoint - sorted by Amazon margin"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Implemented catalog comparison feature with: 1) Mock data fallback when no API keys, 2) Amazon fees (15% TTC), 3) Three-way comparison (supplier vs Google vs Amazon), 4) Cheapest source detection. Please test the backend endpoints: POST /api/catalog/compare/{product_id}, GET /api/catalog/stats, GET /api/catalog/opportunities. For testing, first register a user, then import a catalog or create test data, then run compare. The compare endpoint uses mock data when no Keepa/Google API keys are configured."
+
 user_problem_statement: "Resell Corner - A product price comparison and reselling platform. Users can register/login, search products by text or image, manage suppliers, set price alerts, save favorites, and configure API keys (Google, Keepa). The app uses mock data when API keys are not configured."
 
 backend:
