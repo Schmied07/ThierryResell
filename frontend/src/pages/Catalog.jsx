@@ -111,7 +111,7 @@ const Catalog = () => {
       formData.append("file", file);
 
       const response = await api.post("/catalog/import", formData, {
-        headers: { "Content-Type": "multipart/form-data" }
+        timeout: 120000
       });
 
       toast.success(
