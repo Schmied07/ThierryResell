@@ -285,6 +285,102 @@ backend:
         - agent: "testing"
         - comment: "Health check endpoint working correctly. Returns status: healthy."
 
+  - task: "Catalog Import"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "POST /api/catalog/import - Import Excel catalog file (.xlsx/.xls), parse products, convert GBP to EUR, store in MongoDB catalog_products collection. Validates required columns: GTIN, Name, Category, Brand, Price."
+
+  - task: "Catalog Products List"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "GET /api/catalog/products - List catalog products with pagination, filters (brand, category, min_margin, search, compared_only)"
+
+  - task: "Catalog Stats"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "GET /api/catalog/stats - Returns total products, compared products, total potential margin, avg margin %, best margin, brands, categories"
+
+  - task: "Single Product Price Comparison"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "POST /api/catalog/compare/{product_id} - Compare single product using Keepa (Amazon via EAN/GTIN) and Google Shopping APIs. Calculate margin = best_price - supplier_price. Updates product with prices and margins."
+
+  - task: "Batch Price Comparison"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "POST /api/catalog/compare-batch - Compare multiple products in batch, returns success/failed counts with results and errors"
+
+  - task: "Catalog Opportunities"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "GET /api/catalog/opportunities - Returns best reselling opportunities sorted by margin DESC, filtered by min_margin_percentage"
+
+  - task: "Catalog Export"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "GET /api/catalog/export - Export catalog to Excel with all data including prices and margins. Returns .xlsx file for download."
+
+  - task: "Delete Catalog Products"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "low"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "DELETE /api/catalog/products/{product_id} and DELETE /api/catalog/products - Delete single or all catalog products for user"
+
 frontend:
   - task: "Landing Page"
     implemented: true
