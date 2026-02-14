@@ -993,7 +993,12 @@ async def import_catalog(
         
         for _, row in df.iterrows():
             try:
-                gtin = str(row['GTIN'])
+                gtin = str(row[column_mapping['GTIN']])
+                
+                # Skip rows with invalid GTIN
+                if pd.isna(row[column_mapping['GTIN']]) or gtin == 'nan' or len(gtin) < 8:
+                    skipped_count += 1
+                    continue
                 
                 # Check if product already exists for this user
                 existing = await db.catalog_products.find_one({
@@ -1005,21 +1010,38 @@ async def import_catalog(
                     skipped_count += 1
                     continue
                 
-                price_gbp = float(row['£ Lowest Price inc. shipping'])
+                price_gbp = float(row[column_mapping['Price']])
                 price_eur = round(price_gbp * exchange_rate, 2)
+                
+                # Get additional fields with defaults
+                inventory = str(row.get(column_mapping.get('Inventory', 'Lowest Priced Offer Inventory'), 'Unknown'))
+                if pd.isna(inventory) or inventory == 'nan':
+                    inventory = 'Unknown'
+                
+                num_offers = row.get(column_mapping.get('Offers', 'Number of Offers'), 0)
+                if pd.isna(num_offers):
+                    num_offers = 0
+                else:
+                    num_offers = int(num_offers)
+                
+                product_link = row.get(column_mapping.get('Link', 'Product Link'), '')
+                if pd.isna(product_link):
+                    product_link = None
+                else:
+                    product_link = str(product_link)
                 
                 product = {
                     'id': str(uuid.uuid4()),
                     'user_id': user['id'],
                     'gtin': gtin,
-                    'name': str(row['Name']),
-                    'category': str(row['Category']),
-                    'brand': str(row['Brand']),
+                    'name': str(row[column_mapping['Name']]),
+                    'category': str(row[column_mapping['Category']]),
+                    'brand': str(row[column_mapping['Brand']]),
                     'supplier_price_gbp': price_gbp,
                     'supplier_price_eur': price_eur,
-                    'inventory': str(row.get('Inventory', 'Unknown')),
-                    'number_of_offers': int(row.get('Number of Offers', 0)),
-                    'product_link': str(row.get('Product Link', '')) if pd.notna(row.get('Product Link')) else None,
+                    'inventory': inventory,
+                    'number_of_offers': num_offers,
+                    'product_link': product_link,
                     'amazon_price_eur': None,
                     'google_price_eur': None,
                     'best_price_eur': None,
