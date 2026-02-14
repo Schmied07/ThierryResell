@@ -827,7 +827,7 @@ async def search_by_image(
                     
                     # Extract labels
                     labels = responses.get('labelAnnotations', [])
-                    detected_labels = [l.get('description', '') for l in labels[:5]]
+                    detected_labels = [lbl.get('description', '') for lbl in labels[:5]]
                     
                     # Extract web entities for product name
                     web_detection = responses.get('webDetection', {})
