@@ -787,8 +787,7 @@ const ProductComparisonDetail = ({ product, compareResult }) => {
               <Badge className="bg-purple-500/30 text-purple-300 text-[10px] ml-auto">LE - CHER</Badge>
             )}
           </div>
-          <p className="text-3xl font-bold text-white">{googlePrice?.toFixed(2)}€</p>
-          <p className="text-zinc-500 text-xs mt-1">Prix le + bas trouvé en ligne</p>
+          <p className="text-3xl font-bold text-white">{googlePrice ? `${googlePrice.toFixed(2)}€` : <span className="text-zinc-500 text-lg">Non trouvé</span>}</p>
           {amazonPrice && googlePrice && (
             <div className="mt-3 pt-3 border-t border-zinc-700/50">
               <p className="text-zinc-400 text-xs">Marge si achat Google :</p>
