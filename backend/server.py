@@ -24,6 +24,116 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
+# ==================== PRODUCT CATEGORIES ====================
+
+PRODUCT_CATEGORIES = {
+    "Électronique": {
+        "keywords": ["iphone", "samsung", "phone", "téléphone", "laptop", "ordinateur", "pc", "macbook",
+                     "airpods", "écouteurs", "casque", "tablette", "ipad", "tv", "télévision", "monitor",
+                     "écran", "camera", "gopro", "drone", "playstation", "ps5", "xbox", "nintendo", "switch",
+                     "gpu", "processeur", "ram", "ssd", "carte graphique", "clavier", "souris", "imprimante",
+                     "enceinte", "bluetooth", "smartwatch", "montre connectée", "apple watch", "pixel",
+                     "galaxy", "huawei", "oneplus", "realme", "oppo", "xiaomi", "console", "gaming"],
+        "amazon_price_range": (50, 1500),
+    },
+    "Mode": {
+        "keywords": ["nike", "adidas", "chaussure", "sneaker", "vêtement", "robe", "pantalon", "jean",
+                     "t-shirt", "chemise", "veste", "manteau", "sac", "lunettes", "montre", "bijou",
+                     "bracelet", "collier", "air max", "jordan", "yeezy", "puma", "reebok", "new balance",
+                     "converse", "vans", "pull", "sweat", "hoodie", "short", "jupe", "blouson", "boots"],
+        "amazon_price_range": (15, 300),
+    },
+    "Maison": {
+        "keywords": ["meuble", "canapé", "lit", "matelas", "lampe", "table", "chaise", "bureau",
+                     "étagère", "rangement", "aspirateur", "robot", "cuisine", "cafetière", "mixer",
+                     "four", "micro-ondes", "réfrigérateur", "lave-linge", "sèche-linge", "décoration",
+                     "coussin", "rideau", "tapis", "vaisselle", "casserole", "poêle"],
+        "amazon_price_range": (20, 800),
+    },
+    "Sport": {
+        "keywords": ["vélo", "tapis de course", "haltère", "fitness", "yoga", "ballon", "raquette",
+                     "tennis", "football", "basketball", "running", "natation", "ski", "randonnée",
+                     "camping", "sac à dos", "gourde", "nutrition", "protéine", "musculation"],
+        "amazon_price_range": (10, 500),
+    },
+    "Jouets": {
+        "keywords": ["lego", "playmobil", "poupée", "figurine", "puzzle", "jeu de société", "nerf",
+                     "peluche", "barbie", "hot wheels", "train", "voiture télécommandée", "robot jouet"],
+        "amazon_price_range": (10, 150),
+    },
+    "Livres": {
+        "keywords": ["livre", "roman", "manga", "bd", "bande dessinée", "ebook", "kindle",
+                     "dictionnaire", "encyclopédie", "guide", "manuel"],
+        "amazon_price_range": (5, 50),
+    },
+    "Beauté": {
+        "keywords": ["parfum", "maquillage", "crème", "shampoing", "soin", "sérum", "mascara",
+                     "rouge à lèvres", "fond de teint", "brosse", "sèche-cheveux", "rasoir",
+                     "épilateur", "manucure"],
+        "amazon_price_range": (5, 200),
+    },
+}
+
+def detect_category(query: str) -> str:
+    """Auto-detect product category from search query"""
+    query_lower = query.lower()
+    best_match = None
+    best_score = 0
+    
+    for category, config in PRODUCT_CATEGORIES.items():
+        score = 0
+        for keyword in config["keywords"]:
+            if keyword in query_lower:
+                # Longer keyword matches are better
+                score += len(keyword)
+        if score > best_score:
+            best_score = score
+            best_match = category
+    
+    return best_match or "Général"
+
+def generate_amazon_reference_price(query: str, category: str) -> dict:
+    """Simulate Keepa Amazon price data for a product"""
+    price_range = PRODUCT_CATEGORIES.get(category, {}).get("amazon_price_range", (30, 300))
+    
+    # Generate a base price that's somewhat consistent for the same query
+    # Use hash of query to generate consistent-ish prices
+    hash_val = sum(ord(c) for c in query)
+    random.seed(hash_val)
+    base_price = round(random.uniform(price_range[0], price_range[1]), 2)
+    random.seed()  # Reset seed
+    
+    # Generate price history
+    price_history = []
+    for i in range(30):
+        date = datetime.now(timezone.utc) - timedelta(days=30 - i)
+        variation = random.uniform(0.85, 1.15)
+        price = round(base_price * variation, 2)
+        price_history.append({
+            'date': date.isoformat(),
+            'price': price
+        })
+    
+    # Current Amazon price (slight variation from base)
+    current_amazon_price = round(base_price * random.uniform(0.95, 1.05), 2)
+    
+    # Generate a fake but realistic ASIN
+    asin_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    asin = "B0" + ''.join(random.choice(asin_chars) for _ in range(8))
+    
+    return {
+        'asin': asin,
+        'title': query,
+        'current_price': current_amazon_price,
+        'lowest_30d': min(p['price'] for p in price_history),
+        'highest_30d': max(p['price'] for p in price_history),
+        'average_30d': round(sum(p['price'] for p in price_history) / len(price_history), 2),
+        'price_history': price_history,
+        'currency': 'EUR',
+        'category': category,
+        'mock_data': True
+    }
+
 # JWT Settings
 JWT_SECRET = os.environ.get('JWT_SECRET', 'resell-corner-secret-key-change-in-production')
 JWT_ALGORITHM = 'HS256'
