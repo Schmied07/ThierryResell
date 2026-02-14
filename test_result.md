@@ -502,6 +502,18 @@ frontend:
         - agent: "testing"
         - comment: "Settings page loads correctly with API Keys tab and Profile tab. 'Mode démonstration actif' banner is visible on API Keys tab. Profile tab shows user information correctly."
 
+  - task: "Catalog Page"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Catalog.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "Catalog page at /catalog (protected) with 3 tabs: Import (Excel file upload with drag&drop), Products (table with filters, pagination, batch compare, export), Opportunities (best margins sorted). Stats cards show total products, compared products, potential margin, best margin. Supports file import, price comparison (single/batch), filtering, search, export to Excel."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
