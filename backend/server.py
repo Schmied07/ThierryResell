@@ -997,15 +997,15 @@ async def import_catalog(
         column_mapping = {}
         for col in df.columns:
             col_lower = col.lower()
-            if 'gtin' in col_lower or 'ean' in col_lower:
+            if 'gtin' in col_lower or 'ean' in col_lower or 'barcode' in col_lower:
                 column_mapping['GTIN'] = col
-            elif 'name' in col_lower and 'brand' not in col_lower:
+            elif 'name' in col_lower and 'brand' not in col_lower and 'file' not in col_lower:
                 column_mapping['Name'] = col
-            elif 'category' in col_lower:
+            elif 'category' in col_lower or 'catégorie' in col_lower:
                 column_mapping['Category'] = col
-            elif 'brand' in col_lower:
+            elif 'brand' in col_lower or 'marque' in col_lower:
                 column_mapping['Brand'] = col
-            elif '£' in col and ('price' in col_lower or 'lowest' in col_lower):
+            elif 'Price' not in column_mapping and ('price' in col_lower or 'prix' in col_lower or 'lowest' in col_lower or '£' in col or '€' in col):
                 column_mapping['Price'] = col
         
         # Validate required columns exist
