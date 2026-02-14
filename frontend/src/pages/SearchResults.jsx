@@ -17,17 +17,18 @@ import {
   Package, DollarSign, BarChart3, Minus
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart
-} from "recharts";
+// Temporarily commenting out recharts import due to compilation issue
+// import {
+//   LineChart,
+//   Line,
+//   XAxis,
+//   YAxis,
+//   CartesianGrid,
+//   Tooltip,
+//   ResponsiveContainer,
+//   Area,
+//   AreaChart
+// } from "recharts";
 
 const SearchResults = () => {
   const location = useLocation();
