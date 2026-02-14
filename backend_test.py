@@ -236,6 +236,19 @@ class BackendTester:
             else:
                 self.log_test("Toggle Alert", False, f"Response: {toggle_response}")
             
+            # Test PUT - update alert (this might not exist - checking if it's implemented)
+            update_alert_data = {
+                "product_name": "Updated iPhone 15 Pro Max",
+                "target_price": 899.99
+            }
+            update_alert_response = self.make_request('PUT', f'/alerts/{alert_id}', update_alert_data)
+            if update_alert_response.get("success"):
+                self.log_test("Update Alert", True, "Alert updated successfully")
+            elif update_alert_response.get("status_code") == 404:
+                self.log_test("Update Alert", False, "PUT /alerts/{id} endpoint not implemented - only toggle available")
+            else:
+                self.log_test("Update Alert", False, f"Response: {update_alert_response}")
+            
             # Test DELETE alert
             delete_response = self.make_request('DELETE', f'/alerts/{alert_id}')
             if delete_response.get("success"):
