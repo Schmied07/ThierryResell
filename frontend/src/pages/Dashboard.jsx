@@ -4,9 +4,10 @@ import { api } from "../App";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
 import { 
   Search, Upload, TrendingUp, Bell, Heart, Package, 
-  History, ArrowRight, Image, X, Loader2
+  History, ArrowRight, Image, X, Loader2, Tag, ShoppingBag
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,9 +20,13 @@ const Dashboard = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [stats, setStats] = useState(null);
   const [recentSearches, setRecentSearches] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [supplierCategories, setSupplierCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
+    fetchCategories();
   }, []);
 
   const fetchDashboardData = async () => {
@@ -34,13 +39,27 @@ const Dashboard = () => {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const response = await api.get("/categories");
+      setCategories(response.data.all_categories || []);
+      setSupplierCategories(response.data.supplier_categories || []);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
+
   const handleTextSearch = async (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
     setSearchLoading(true);
     try {
-      const response = await api.post("/search/text", { query: searchQuery });
+      const payload = { query: searchQuery };
+      if (selectedCategory) {
+        payload.category = selectedCategory;
+      }
+      const response = await api.post("/search/text", payload);
       navigate("/search", { state: { results: response.data, query: searchQuery } });
     } catch (error) {
       toast.error("Erreur lors de la recherche");
@@ -86,6 +105,19 @@ const Dashboard = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  };
+
+  const getCategoryIcon = (cat) => {
+    const icons = {
+      "Électronique": "💻",
+      "Mode": "👗",
+      "Maison": "🏠",
+      "Sport": "⚽",
+      "Jouets": "🧸",
+      "Livres": "📚",
+      "Beauté": "💄",
+    };
+    return icons[cat] || "📦";
   };
 
   const statCards = [
@@ -143,6 +175,56 @@ const Dashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Category Filter */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Tag className="w-4 h-4 text-zinc-400" />
+                <span className="text-zinc-400 text-sm font-medium">Filtrer par catégorie</span>
+                {selectedCategory && (
+                  <button
+                    onClick={() => setSelectedCategory(null)}
+                    className="text-xs text-zinc-500 hover:text-zinc-300 underline ml-2"
+                  >
+                    Effacer le filtre
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((cat) => {
+                  const isSupplierCat = supplierCategories.includes(cat);
+                  const isSelected = selectedCategory === cat;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(isSelected ? null : cat)}
+                      className={`
+                        inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium
+                        transition-all duration-200 border
+                        ${isSelected
+                          ? 'bg-lime-400/20 border-lime-400/50 text-lime-400 shadow-[0_0_10px_rgba(163,230,53,0.1)]'
+                          : isSupplierCat
+                            ? 'bg-zinc-800/80 border-zinc-700 text-zinc-300 hover:border-lime-400/30 hover:text-lime-400'
+                            : 'bg-zinc-800/40 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-400'
+                        }
+                      `}
+                    >
+                      <span>{getCategoryIcon(cat)}</span>
+                      <span>{cat}</span>
+                      {isSupplierCat && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-lime-400 inline-block" title="Vous avez des fournisseurs dans cette catégorie"></span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              {supplierCategories.length > 0 && (
+                <p className="text-xs text-zinc-600 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-lime-400 inline-block"></span>
+                  Catégories avec fournisseurs configurés
+                </p>
+              )}
+            </div>
+
             {/* Text Search */}
             <form onSubmit={handleTextSearch} className="flex gap-3">
               <div className="flex-1 relative">
@@ -150,7 +232,10 @@ const Dashboard = () => {
                 <Input
                   data-testid="search-input"
                   type="text"
-                  placeholder="Rechercher un produit (ex: iPhone 15, Nike Air Max...)"
+                  placeholder={selectedCategory 
+                    ? `Rechercher dans ${selectedCategory} (ex: ${selectedCategory === "Électronique" ? "iPhone 15, Samsung Galaxy..." : selectedCategory === "Mode" ? "Nike Air Max, Adidas..." : "Produit..."})`
+                    : "Rechercher un produit (ex: iPhone 15, Nike Air Max...)"
+                  }
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-12 h-14 text-lg bg-zinc-950 border-zinc-800 focus:border-lime-500/50 focus:ring-lime-500/20"
@@ -172,6 +257,21 @@ const Dashboard = () => {
                 )}
               </Button>
             </form>
+
+            {/* Selected Category Indicator */}
+            {selectedCategory && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-lime-400/5 border border-lime-400/20 rounded-lg">
+                <ShoppingBag className="w-4 h-4 text-lime-400" />
+                <span className="text-sm text-zinc-300">
+                  Recherche filtrée par catégorie : <strong className="text-lime-400">{selectedCategory}</strong>
+                  {supplierCategories.includes(selectedCategory) && (
+                    <span className="text-zinc-500 ml-2">
+                      — vos fournisseurs dans cette catégorie seront comparés
+                    </span>
+                  )}
+                </span>
+              </div>
+            )}
 
             {/* Divider */}
             <div className="flex items-center gap-4">
@@ -295,6 +395,9 @@ const Dashboard = () => {
                     className="flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg hover:bg-zinc-800 transition-colors cursor-pointer"
                     onClick={() => {
                       setSearchQuery(search.query);
+                      if (search.category) {
+                        setSelectedCategory(search.category);
+                      }
                     }}
                     data-testid={`recent-search-${index}`}
                   >
@@ -305,11 +408,21 @@ const Dashboard = () => {
                         <Search className="w-4 h-4 text-zinc-500" />
                       )}
                       <span className="text-zinc-300">{search.query}</span>
+                      {search.category && (
+                        <Badge variant="outline" className="border-zinc-700 text-zinc-500 text-xs">
+                          {search.category}
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center gap-4 text-sm">
                       <span className="text-zinc-500">
                         {search.results_count} résultats
                       </span>
+                      {search.amazon_price && (
+                        <span className="text-orange-400 font-mono text-xs">
+                          Amazon: {search.amazon_price.toFixed(2)}€
+                        </span>
+                      )}
                       {search.lowest_price && (
                         <span className="text-lime-400 font-mono">
                           {search.lowest_price.toFixed(2)}€
