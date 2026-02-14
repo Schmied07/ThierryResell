@@ -932,7 +932,7 @@ async def get_keepa_product(asin: str, user: dict = Depends(get_current_user)):
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"https://api.keepa.com/product",
+                "https://api.keepa.com/product",
                 params={
                     "key": keepa_key,
                     "domain": 1,  # Amazon.com
