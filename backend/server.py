@@ -714,8 +714,8 @@ async def search_by_image(
     # If Google Vision API key is configured, use real detection
     if google_key:
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
+            async with httpx.AsyncClient() as http_client:
+                response = await http_client.post(
                     f"https://vision.googleapis.com/v1/images:annotate?key={google_key}",
                     json={
                         "requests": [{
@@ -745,11 +745,18 @@ async def search_by_image(
         except Exception as e:
             logger.warning(f"Google Vision API error: {e}")
     
+    # Auto-detect category
+    category = detect_category(product_name)
+    
     # Get user's suppliers
     suppliers = await db.suppliers.find({'user_id': user['id']}, {'_id': 0}).to_list(100)
     
-    # Generate mock comparisons
-    comparisons = generate_mock_comparisons(product_name, suppliers)
+    # Get Amazon reference price
+    keepa_data = generate_amazon_reference_price(product_name, category)
+    amazon_price = keepa_data['current_price']
+    
+    # Generate comparisons with category filtering and Amazon-based margins
+    comparisons = generate_mock_comparisons(product_name, suppliers, category, amazon_price)
     prices = [c.total_price for c in comparisons]
     
     # Save to search history
@@ -758,8 +765,10 @@ async def search_by_image(
         'user_id': user['id'],
         'query': product_name,
         'search_type': 'image',
+        'category': category,
         'results_count': len(comparisons),
         'lowest_price': min(prices) if prices else None,
+        'amazon_price': amazon_price,
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     await db.search_history.insert_one(history_doc)
@@ -771,7 +780,10 @@ async def search_by_image(
         comparisons=comparisons,
         lowest_price=min(prices) if prices else None,
         highest_price=max(prices) if prices else None,
-        average_price=round(sum(prices) / len(prices), 2) if prices else None
+        average_price=round(sum(prices) / len(prices), 2) if prices else None,
+        category=category,
+        amazon_reference_price=amazon_price,
+        keepa_data=keepa_data
     )
 
 # ==================== PRICE HISTORY ROUTES ====================
