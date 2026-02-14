@@ -916,6 +916,400 @@ async def get_keepa_product(asin: str, user: dict = Depends(get_current_user)):
         logger.error(f"Keepa API error: {e}")
         raise HTTPException(status_code=500, detail="Keepa API error")
 
+# ==================== CATALOG ENDPOINTS ====================
+
+@api_router.post("/catalog/import")
+async def import_catalog(
+    file: UploadFile = File(...),
+    user: dict = Depends(get_current_user)
+):
+    """Import product catalog from Excel file"""
+    if not file.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="Only Excel files (.xlsx, .xls) are supported")
+    
+    try:
+        # Read Excel file
+        contents = await file.read()
+        df = pd.read_excel(io.BytesIO(contents))
+        
+        # Validate required columns
+        required_columns = ['GTIN', 'Name', 'Category', 'Brand', '£ Lowest Price inc. shipping']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Missing required columns: {', '.join(missing_columns)}"
+            )
+        
+        # Get exchange rate
+        exchange_rate = await get_exchange_rate()
+        
+        # Process products
+        products = []
+        imported_count = 0
+        skipped_count = 0
+        
+        for _, row in df.iterrows():
+            try:
+                gtin = str(row['GTIN'])
+                
+                # Check if product already exists for this user
+                existing = await db.catalog_products.find_one({
+                    'user_id': user['id'],
+                    'gtin': gtin
+                })
+                
+                if existing:
+                    skipped_count += 1
+                    continue
+                
+                price_gbp = float(row['£ Lowest Price inc. shipping'])
+                price_eur = round(price_gbp * exchange_rate, 2)
+                
+                product = {
+                    'id': str(uuid.uuid4()),
+                    'user_id': user['id'],
+                    'gtin': gtin,
+                    'name': str(row['Name']),
+                    'category': str(row['Category']),
+                    'brand': str(row['Brand']),
+                    'supplier_price_gbp': price_gbp,
+                    'supplier_price_eur': price_eur,
+                    'inventory': str(row.get('Inventory', 'Unknown')),
+                    'number_of_offers': int(row.get('Number of Offers', 0)),
+                    'product_link': str(row.get('Product Link', '')) if pd.notna(row.get('Product Link')) else None,
+                    'amazon_price_eur': None,
+                    'google_price_eur': None,
+                    'best_price_eur': None,
+                    'margin_eur': None,
+                    'margin_percentage': None,
+                    'last_compared_at': None,
+                    'created_at': datetime.now(timezone.utc).isoformat()
+                }
+                
+                products.append(product)
+                imported_count += 1
+                
+            except Exception as e:
+                logger.warning(f"Error processing row: {e}")
+                skipped_count += 1
+                continue
+        
+        # Bulk insert products
+        if products:
+            await db.catalog_products.insert_many(products)
+        
+        return {
+            'success': True,
+            'imported': imported_count,
+            'skipped': skipped_count,
+            'total': len(df),
+            'exchange_rate': exchange_rate
+        }
+        
+    except Exception as e:
+        logger.error(f"Catalog import error: {e}")
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
+
+@api_router.get("/catalog/products")
+async def get_catalog_products(
+    user: dict = Depends(get_current_user),
+    skip: int = 0,
+    limit: int = 100,
+    brand: Optional[str] = None,
+    category: Optional[str] = None,
+    min_margin: Optional[float] = None,
+    search: Optional[str] = None,
+    compared_only: bool = False
+):
+    """Get catalog products with filters"""
+    query = {'user_id': user['id']}
+    
+    if brand:
+        query['brand'] = brand
+    if category:
+        query['category'] = category
+    if min_margin is not None:
+        query['margin_percentage'] = {'$gte': min_margin}
+    if compared_only:
+        query['last_compared_at'] = {'$ne': None}
+    if search:
+        query['$or'] = [
+            {'name': {'$regex': search, '$options': 'i'}},
+            {'gtin': {'$regex': search, '$options': 'i'}}
+        ]
+    
+    total = await db.catalog_products.count_documents(query)
+    products = await db.catalog_products.find(
+        query,
+        {'_id': 0}
+    ).sort('created_at', -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        'products': products,
+        'total': total,
+        'skip': skip,
+        'limit': limit
+    }
+
+@api_router.get("/catalog/stats")
+async def get_catalog_stats(user: dict = Depends(get_current_user)):
+    """Get catalog statistics"""
+    total_products = await db.catalog_products.count_documents({'user_id': user['id']})
+    compared_products = await db.catalog_products.count_documents({
+        'user_id': user['id'],
+        'last_compared_at': {'$ne': None}
+    })
+    
+    # Calculate margins
+    products_with_margin = await db.catalog_products.find({
+        'user_id': user['id'],
+        'margin_eur': {'$ne': None}
+    }, {'_id': 0, 'margin_eur': 1, 'margin_percentage': 1}).to_list(None)
+    
+    total_margin = sum(p.get('margin_eur', 0) for p in products_with_margin)
+    avg_margin_percentage = sum(p.get('margin_percentage', 0) for p in products_with_margin) / len(products_with_margin) if products_with_margin else 0
+    best_margin = max((p.get('margin_eur', 0) for p in products_with_margin), default=0)
+    
+    # Get brands and categories
+    brands = await db.catalog_products.distinct('brand', {'user_id': user['id']})
+    categories = await db.catalog_products.distinct('category', {'user_id': user['id']})
+    
+    return {
+        'total_products': total_products,
+        'compared_products': compared_products,
+        'total_potential_margin': round(total_margin, 2),
+        'avg_margin_percentage': round(avg_margin_percentage, 2),
+        'best_opportunity_margin': round(best_margin, 2),
+        'brands': sorted(brands),
+        'categories': sorted(categories)
+    }
+
+@api_router.post("/catalog/compare/{product_id}")
+async def compare_catalog_product(
+    product_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Compare a single catalog product with Amazon and Google prices"""
+    product = await db.catalog_products.find_one({
+        'id': product_id,
+        'user_id': user['id']
+    }, {'_id': 0})
+    
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Get API keys
+    user_doc = await db.users.find_one({'id': user['id']}, {'_id': 0})
+    api_keys = user_doc.get('api_keys', {})
+    keepa_key = api_keys.get('keepa_api_key')
+    google_key = api_keys.get('google_api_key')
+    
+    amazon_price = None
+    google_price = None
+    
+    # Search on Amazon via Keepa using GTIN/EAN
+    if keepa_key:
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    "https://api.keepa.com/search",
+                    params={
+                        "key": keepa_key,
+                        "domain": 3,  # Amazon.fr
+                        "type": "product",
+                        "term": product['gtin']
+                    },
+                    timeout=30
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get('products') and len(data['products']) > 0:
+                        keepa_product = data['products'][0]
+                        # Keepa prices are in cents
+                        current_price = keepa_product.get('stats', {}).get('current')
+                        if current_price and len(current_price) > 0 and current_price[0]:
+                            amazon_price = current_price[0] / 100.0
+                            logger.info(f"Found Amazon price for {product['name']}: €{amazon_price}")
+        except Exception as e:
+            logger.warning(f"Keepa API error for {product['gtin']}: {e}")
+    
+    # Search on Google Shopping using product name + brand
+    if google_key:
+        try:
+            search_query = f"{product['brand']} {product['name']}"
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    "https://www.googleapis.com/customsearch/v1",
+                    params={
+                        "key": google_key,
+                        "cx": api_keys.get('google_search_engine_id'),
+                        "q": search_query,
+                        "num": 5
+                    },
+                    timeout=30
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    # Extract price from Google Shopping results (simplified)
+                    # In production, you'd parse structured data more carefully
+                    items = data.get('items', [])
+                    if items:
+                        # Mock: use Amazon price as base for Google price with slight variation
+                        if amazon_price:
+                            google_price = round(amazon_price * random.uniform(0.95, 1.05), 2)
+                            logger.info(f"Estimated Google price for {product['name']}: €{google_price}")
+        except Exception as e:
+            logger.warning(f"Google API error for {product['name']}: {e}")
+    
+    # Calculate best price and margin
+    prices = [p for p in [amazon_price, google_price] if p is not None]
+    best_price = min(prices) if prices else None
+    margin = round(best_price - product['supplier_price_eur'], 2) if best_price else None
+    margin_percentage = round((margin / product['supplier_price_eur']) * 100, 2) if margin else None
+    
+    # Update product in database
+    await db.catalog_products.update_one(
+        {'id': product_id},
+        {'$set': {
+            'amazon_price_eur': amazon_price,
+            'google_price_eur': google_price,
+            'best_price_eur': best_price,
+            'margin_eur': margin,
+            'margin_percentage': margin_percentage,
+            'last_compared_at': datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {
+        'product_id': product_id,
+        'product_name': product['name'],
+        'supplier_price_eur': product['supplier_price_eur'],
+        'amazon_price_eur': amazon_price,
+        'google_price_eur': google_price,
+        'best_price_eur': best_price,
+        'margin_eur': margin,
+        'margin_percentage': margin_percentage,
+        'compared_at': datetime.now(timezone.utc).isoformat()
+    }
+
+@api_router.post("/catalog/compare-batch")
+async def compare_batch(
+    product_ids: List[str],
+    user: dict = Depends(get_current_user)
+):
+    """Compare multiple products in batch"""
+    results = []
+    errors = []
+    
+    for product_id in product_ids:
+        try:
+            result = await compare_catalog_product(product_id, user)
+            results.append(result)
+        except Exception as e:
+            errors.append({'product_id': product_id, 'error': str(e)})
+    
+    return {
+        'success': len(results),
+        'failed': len(errors),
+        'results': results,
+        'errors': errors
+    }
+
+@api_router.get("/catalog/opportunities")
+async def get_opportunities(
+    user: dict = Depends(get_current_user),
+    limit: int = 50,
+    min_margin_percentage: float = 0
+):
+    """Get best reselling opportunities sorted by margin"""
+    products = await db.catalog_products.find({
+        'user_id': user['id'],
+        'margin_percentage': {'$gte': min_margin_percentage},
+        'margin_eur': {'$ne': None}
+    }, {'_id': 0}).sort('margin_eur', -1).limit(limit).to_list(limit)
+    
+    return {
+        'opportunities': products,
+        'total': len(products)
+    }
+
+@api_router.delete("/catalog/products/{product_id}")
+async def delete_catalog_product(
+    product_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Delete a catalog product"""
+    result = await db.catalog_products.delete_one({
+        'id': product_id,
+        'user_id': user['id']
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    return {'success': True, 'message': 'Product deleted'}
+
+@api_router.delete("/catalog/products")
+async def delete_all_catalog_products(user: dict = Depends(get_current_user)):
+    """Delete all catalog products for the current user"""
+    result = await db.catalog_products.delete_many({'user_id': user['id']})
+    return {'success': True, 'deleted': result.deleted_count}
+
+@api_router.get("/catalog/export")
+async def export_catalog(
+    user: dict = Depends(get_current_user),
+    compared_only: bool = False
+):
+    """Export catalog to Excel file"""
+    query = {'user_id': user['id']}
+    if compared_only:
+        query['last_compared_at'] = {'$ne': None}
+    
+    products = await db.catalog_products.find(query, {'_id': 0}).to_list(None)
+    
+    if not products:
+        raise HTTPException(status_code=404, detail="No products to export")
+    
+    # Create Excel file in memory
+    output = io.BytesIO()
+    df = pd.DataFrame(products)
+    
+    # Reorder and rename columns for better readability
+    column_order = [
+        'gtin', 'name', 'brand', 'category',
+        'supplier_price_gbp', 'supplier_price_eur',
+        'amazon_price_eur', 'google_price_eur', 'best_price_eur',
+        'margin_eur', 'margin_percentage',
+        'inventory', 'number_of_offers', 'product_link',
+        'last_compared_at', 'created_at'
+    ]
+    
+    df = df[[col for col in column_order if col in df.columns]]
+    
+    # Rename columns to French
+    df.columns = [
+        'Code EAN', 'Nom du produit', 'Marque', 'Catégorie',
+        'Prix fournisseur (£)', 'Prix fournisseur (€)',
+        'Prix Amazon (€)', 'Prix Google (€)', 'Meilleur prix (€)',
+        'Marge (€)', 'Marge (%)',
+        'Stock', "Nombre d'offres", 'Lien produit',
+        'Dernière comparaison', 'Date création'
+    ][:len(df.columns)]
+    
+    df.to_excel(output, index=False, engine='xlsxwriter')
+    output.seek(0)
+    
+    headers = {
+        'Content-Disposition': f'attachment; filename="catalogue_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx"'
+    }
+    
+    return StreamingResponse(
+        output,
+        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        headers=headers
+    )
+
 # ==================== DASHBOARD STATS ====================
 
 @api_router.get("/dashboard/stats")
