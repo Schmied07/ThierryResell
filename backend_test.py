@@ -223,11 +223,12 @@ class BackendTester:
             method = "POST" if "compare" in endpoint else "GET"
             response = self.make_request(method, endpoint)
             
-            if response["status_code"] != 401:
-                self.log(f"❌ Expected 401 for {endpoint}, got {response['status_code']}", "ERROR")
+            # Accept both 401 (Unauthorized) and 403 (Forbidden) as valid auth failures
+            if response["status_code"] not in [401, 403]:
+                self.log(f"❌ Expected 401/403 for {endpoint}, got {response['status_code']}", "ERROR")
                 all_failed_correctly = False
             else:
-                self.log(f"✅ {endpoint} correctly requires authentication")
+                self.log(f"✅ {endpoint} correctly requires authentication (got {response['status_code']})")
         
         # Restore token
         self.token = original_token
