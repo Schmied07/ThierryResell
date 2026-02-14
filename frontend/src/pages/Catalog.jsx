@@ -325,11 +325,19 @@ const Catalog = () => {
         )}
 
         {/* Info banner about Amazon fees */}
-        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-3 mb-6 flex items-center gap-3">
-          <Info className="w-5 h-5 text-amber-400 shrink-0" />
-          <p className="text-amber-200 text-sm">
+        <div className={`${apiKeysConfigured ? 'bg-green-500/10 border-green-500/20' : 'bg-amber-500/10 border-amber-500/20'} border rounded-lg px-4 py-3 mb-6 flex items-center gap-3`}>
+          {apiKeysConfigured ? (
+            <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
+          ) : (
+            <Info className="w-5 h-5 text-amber-400 shrink-0" />
+          )}
+          <p className={`${apiKeysConfigured ? 'text-green-200' : 'text-amber-200'} text-sm`}>
             <strong>Calcul des marges :</strong> Prix Amazon (vente) - Prix d'achat (le moins cher entre fournisseur et Google) - Frais Amazon (15% TTC).
-            Les données affichées sont <strong>simulées</strong> tant que les clés API Keepa et Google ne sont pas configurées dans les Paramètres.
+            {apiKeysConfigured ? (
+              <> Les données sont récupérées via vos <strong>clés API réelles</strong> (Keepa / Google).</>
+            ) : (
+              <> Les données affichées sont <strong>simulées</strong> tant que les clés API Keepa et Google ne sont pas configurées dans les Paramètres.</>
+            )}
           </p>
         </div>
 
