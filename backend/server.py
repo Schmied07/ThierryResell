@@ -930,15 +930,57 @@ async def import_catalog(
     try:
         # Read Excel file
         contents = await file.read()
-        df = pd.read_excel(io.BytesIO(contents))
         
-        # Validate required columns
-        required_columns = ['GTIN', 'Name', 'Category', 'Brand', '£ Lowest Price inc. shipping']
-        missing_columns = [col for col in required_columns if col not in df.columns]
-        if missing_columns:
+        # Try different header row positions to find the correct structure
+        df = None
+        for header_row in [0, 1, 2, 3, 4]:
+            try:
+                temp_df = pd.read_excel(io.BytesIO(contents), header=header_row)
+                # Check if this looks like the right header row
+                if len(temp_df.columns) > 4 and any('GTIN' in str(col) for col in temp_df.columns):
+                    df = temp_df
+                    break
+                # Check if the first row contains the headers
+                if len(temp_df) > 0:
+                    first_row = temp_df.iloc[0]
+                    if any('GTIN' in str(val) for val in first_row.values):
+                        # Use first row as headers
+                        new_columns = [str(val) if pd.notna(val) else f'Unnamed_{i}' for i, val in enumerate(first_row.values)]
+                        df = temp_df.iloc[1:].copy()
+                        df.columns = new_columns
+                        break
+            except:
+                continue
+        
+        if df is None:
+            raise HTTPException(status_code=400, detail="Could not parse Excel file structure")
+        
+        # Clean up column names and find required columns
+        df.columns = [str(col).strip() for col in df.columns]
+        
+        # Map possible column variations
+        column_mapping = {}
+        for col in df.columns:
+            col_lower = col.lower()
+            if 'gtin' in col_lower or 'ean' in col_lower:
+                column_mapping['GTIN'] = col
+            elif 'name' in col_lower and 'brand' not in col_lower:
+                column_mapping['Name'] = col
+            elif 'category' in col_lower:
+                column_mapping['Category'] = col
+            elif 'brand' in col_lower:
+                column_mapping['Brand'] = col
+            elif '£' in col and ('price' in col_lower or 'lowest' in col_lower):
+                column_mapping['Price'] = col
+        
+        # Validate required columns exist
+        required_fields = ['GTIN', 'Name', 'Category', 'Brand', 'Price']
+        missing_fields = [field for field in required_fields if field not in column_mapping]
+        if missing_fields:
+            available_cols = list(df.columns)
             raise HTTPException(
                 status_code=400,
-                detail=f"Missing required columns: {', '.join(missing_columns)}"
+                detail=f"Missing required fields: {', '.join(missing_fields)}. Available columns: {', '.join(available_cols)}"
             )
         
         # Get exchange rate
