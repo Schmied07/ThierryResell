@@ -965,9 +965,7 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Compare All Catalog Products endpoint"
-    - "Rechercher tous les produits button on Catalog page"
+  current_focus: []
   stuck_tasks:
     - "Suppliers Page"
     - "Alerts Page"
