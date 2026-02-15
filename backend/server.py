@@ -1985,6 +1985,12 @@ async def compare_catalog_product(
         # Differences
         'google_vs_amazon_diff_eur': google_vs_amazon_diff,
         'supplier_vs_google_diff_eur': supplier_vs_google_diff,
+        # Price trend analysis
+        'price_trend': price_trend,
+        # Opportunity score
+        'opportunity_score': opportunity['score'],
+        'opportunity_level': opportunity['level'],
+        'opportunity_details': opportunity['details'],
         'compared_at': datetime.now(timezone.utc).isoformat()
     }
 
