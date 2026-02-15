@@ -1503,19 +1503,6 @@ async def compare_catalog_product(
                                 break
                     
                     logger.info(f"Keepa final Amazon price for {product['name']}: €{amazon_price}")
-                            prices_array = csv_data[1]
-                            for i in range(len(prices_array) - 1, 0, -2):
-                                if prices_array[i] is not None and prices_array[i] > 0:
-                                    amazon_price = prices_array[i] / 100.0
-                                    break
-                    
-                    # Method 3: Try buyBoxPrice from stats
-                    if amazon_price is None:
-                        buy_box = stats.get('buyBoxPrice', -1)
-                        if buy_box is not None and buy_box > 0:
-                            amazon_price = buy_box / 100.0
-                    
-                    logger.info(f"Keepa final Amazon price for {product['name']}: €{amazon_price}")
                 else:
                     logger.info(f"Keepa: no products found for {product['name']} (neither by GTIN nor by name)")
                     
