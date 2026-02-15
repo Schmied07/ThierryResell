@@ -2315,6 +2315,10 @@ async def compare_catalog_product(
         'opportunity_score': opportunity['score'],
         'opportunity_level': opportunity['level'],
         'opportunity_details': opportunity['details'],
+        # Profitability predictions
+        'profitability_predictions': profitability_predictions,
+        # Multi-market arbitrage
+        'multi_market_arbitrage': multi_market_arbitrage,
         'compared_at': datetime.now(timezone.utc).isoformat()
     }
 
