@@ -162,7 +162,7 @@ const Catalog = () => {
     }
 
     // Validate required fields are mapped
-    const requiredFields = ['GTIN', 'Name', 'Category', 'Brand', 'Price'];
+    const requiredFields = ['GTIN', 'Price'];
     const missingFields = requiredFields.filter(f => !columnMapping[f]);
     if (missingFields.length > 0) {
       toast.error(`Colonnes requises non mappées : ${missingFields.join(', ')}`);
