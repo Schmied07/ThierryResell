@@ -636,10 +636,10 @@ const Catalog = () => {
                       </p>
                       <ul className="text-zinc-400 text-sm space-y-1 list-disc list-inside">
                         <li><strong>GTIN/EAN</strong> - Code-barres du produit (requis)</li>
-                        <li><strong>Nom</strong> - Nom du produit (requis)</li>
-                        <li><strong>Catégorie</strong> - Catégorie du produit (requis)</li>
-                        <li><strong>Marque</strong> - Marque du produit (requis)</li>
                         <li><strong>Prix</strong> - Prix fournisseur (requis)</li>
+                        <li><strong className="text-zinc-500">Nom</strong> - Nom du produit (optionnel)</li>
+                        <li><strong className="text-zinc-500">Catégorie</strong> - Catégorie du produit (optionnel)</li>
+                        <li><strong className="text-zinc-500">Marque</strong> - Marque du produit (optionnel)</li>
                         <li><strong className="text-green-400">Image</strong> - URL de l'image du produit (optionnel - permet la recherche Google par image)</li>
                       </ul>
                     </div>
