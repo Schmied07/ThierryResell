@@ -197,7 +197,7 @@ class BackendTester:
             return False
     
     def test_catalog_import(self):
-        """Test catalog import endpoint"""
+        """Test catalog import endpoint with manual column mapping"""
         try:
             # Check if test file exists
             test_file_path = Path("/tmp/test_catalog.xlsx")
@@ -205,27 +205,22 @@ class BackendTester:
                 self.error("Test catalog file not found at /tmp/test_catalog.xlsx")
                 return False
             
-            # First get the column mapping from preview
+            # Test import with manual column mapping as specified in review request
+            manual_mapping = {
+                'GTIN': 'Product Code',
+                'Name': 'Product Title',
+                'Category': 'Product Type', 
+                'Brand': 'Manufacturer',
+                'Price': 'Supplier Price',
+                'Image': 'Product Image URL'
+            }
+            
+            self.log(f"Testing import with manual column mapping: {manual_mapping}")
+            
+            # Test import with manual mapping
             with open(test_file_path, "rb") as f:
                 files = {"file": (test_file_path.name, f, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
-                
-                response = self.session.post(
-                    f"{BACKEND_URL}/catalog/preview",
-                    files=files,
-                    headers=self.get_headers()
-                )
-            
-            if response.status_code != 200:
-                self.error(f"Failed to get preview for import test: {response.status_code}")
-                return False
-                
-            preview_data = response.json()
-            suggested_mapping = preview_data["suggested_mapping"]
-            
-            # Test import with suggested mapping
-            with open(test_file_path, "rb") as f:
-                files = {"file": (test_file_path.name, f, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
-                data = {"column_mapping_json": json.dumps(suggested_mapping)}
+                data = {"column_mapping_json": json.dumps(manual_mapping)}
                 
                 response = self.session.post(
                     f"{BACKEND_URL}/catalog/import",
@@ -238,7 +233,7 @@ class BackendTester:
                 data = response.json()
                 
                 # Validate response structure
-                expected_keys = ["success", "imported", "skipped", "total", "exchange_rate"]
+                expected_keys = ["success", "imported", "skipped", "total"]
                 for key in expected_keys:
                     if key not in data:
                         self.error(f"Import response missing key: {key}")
@@ -251,12 +246,14 @@ class BackendTester:
                     
                     self.log(f"Catalog import successful: {imported} imported, {skipped} skipped, {total} total")
                     
-                    # Should have imported some products
-                    if imported > 0:
-                        self.log(f"✓ Successfully imported {imported} products")
-                        return True
+                    # Should have imported 3 products from test file
+                    if imported == 3:
+                        self.log(f"✓ Successfully imported all {imported} products from test file")
+                        
+                        # Verify products were imported correctly by checking catalog
+                        return self.verify_imported_products()
                     else:
-                        self.error("No products were imported - possible column mapping issue")
+                        self.error(f"Expected to import 3 products, but imported {imported}")
                         return False
                 else:
                     self.error(f"Import marked as not successful: {data}")
@@ -266,7 +263,7 @@ class BackendTester:
                 error_text = response.text
                 if "missing columns" in error_text.lower() or "colonnes manquantes" in error_text.lower():
                     self.error(f"Import failed with missing columns error: {error_text}")
-                    self.error(f"This suggests column auto-detection or mapping is not working properly")
+                    self.error(f"This suggests column mapping is not working properly")
                     return False
                 else:
                     self.error(f"Import failed with validation error: {error_text}")
@@ -277,6 +274,55 @@ class BackendTester:
                 
         except Exception as e:
             self.error(f"Catalog import test failed: {e}")
+            return False
+    
+    def verify_imported_products(self):
+        """Verify that products were imported correctly"""
+        try:
+            response = self.session.get(
+                f"{BACKEND_URL}/catalog/products",
+                headers=self.get_headers()
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                products = data.get("products", [])
+                
+                if len(products) >= 3:
+                    self.log(f"✓ Found {len(products)} products in catalog")
+                    
+                    # Check for specific test products
+                    expected_products = [
+                        {"gtin": "3574661517506", "name": "Elmex Junior", "brand": "Elmex"},
+                        {"gtin": "3574661517513", "name": "Colgate Max Fresh", "brand": "Colgate"},
+                        {"gtin": "8410076404117", "name": "Oral-B Pro Expert", "brand": "Oral-B"}
+                    ]
+                    
+                    found_products = 0
+                    for expected in expected_products:
+                        for product in products:
+                            if (product.get("gtin") == expected["gtin"] and 
+                                expected["name"] in product.get("name", "") and
+                                product.get("brand") == expected["brand"]):
+                                found_products += 1
+                                self.log(f"✓ Found expected product: {expected['name']} (GTIN: {expected['gtin']})")
+                                break
+                    
+                    if found_products == 3:
+                        self.log("✓ All test products imported correctly with proper field mapping")
+                        return True
+                    else:
+                        self.error(f"Only found {found_products}/3 expected products in catalog")
+                        return False
+                else:
+                    self.error(f"Expected at least 3 products in catalog, found {len(products)}")
+                    return False
+            else:
+                self.error(f"Failed to retrieve catalog products: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            self.error(f"Product verification failed: {e}")
             return False
     
     def run_all_tests(self):
