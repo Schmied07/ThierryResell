@@ -181,6 +181,18 @@ backend:
         comment: "Added columns: google_lowest_price, cheapest_source, amazon_fees, supplier/google margins"
 
 frontend:
+  - task: "Google Suppliers Display - Show all suppliers with links"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Catalog.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "NEW FEATURE: Added 'Fournisseurs trouvés par Google' section in product detail view. Displays all Google suppliers as cards with: supplier name, price, clickable 'Voir le produit' link. Lowest price supplier has animated '⭐ PLUS BAS' badge with purple gradient. Grid layout (1-3 columns responsive). Includes info tooltip. Located between price cards and comparison summary."
+
   - task: "Catalog page - comparison table with all price columns"
     implemented: true
     working: "NA"
@@ -204,6 +216,9 @@ frontend:
       - working: "NA"
         agent: "main"
         comment: "Expandable detail with 3 price cards, comparison summary, calculation breakdown"
+      - working: "NA"
+        agent: "main"
+        comment: "ENHANCEMENT: Added Google Suppliers section showing all found suppliers with prices and product links"
 
   - task: "Opportunities tab - updated with new margin logic"
     implemented: true
