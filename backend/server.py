@@ -1871,15 +1871,15 @@ async def import_catalog(
         
         logger.info(f"Column mapping: {column_mapping}")
         
-        # Validate required columns exist
-        required_fields = ['GTIN', 'Name', 'Category', 'Brand', 'Price']
+        # Validate only truly required columns exist (GTIN and Price)
+        required_fields = ['GTIN', 'Price']
         missing_fields = [field for field in required_fields if field not in column_mapping or not column_mapping[field]]
         if missing_fields:
             available_cols = list(df.columns)
-            logger.error(f"Missing columns: {missing_fields}. Available: {available_cols}")
+            logger.error(f"Missing required columns: {missing_fields}. Available: {available_cols}")
             raise HTTPException(
                 status_code=400,
-                detail=f"Colonnes manquantes : {', '.join(missing_fields)}. Colonnes disponibles : {', '.join(available_cols)}"
+                detail=f"Colonnes requises manquantes : {', '.join(missing_fields)}. Colonnes disponibles : {', '.join(available_cols)}"
             )
         
         # Validate that mapped columns actually exist in the dataframe
