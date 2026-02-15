@@ -24,7 +24,7 @@ import {
   Loader2, CheckCircle, AlertCircle, ArrowUpDown,
   ChevronDown, ChevronUp, X, ShoppingCart, Globe, Store,
   ArrowRight, Percent, Info, ExternalLink, Tag, TrendingDown,
-  Minus, Sparkles, Star
+  Minus, Sparkles, Star, Image, MapPin, Columns, ArrowLeft
 } from "lucide-react";
 import { toast } from "sonner";
 
