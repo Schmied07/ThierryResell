@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
 """
-Backend API Testing for Catalog Upload and Column Detection
-Tests the catalog file upload and column detection functionality.
+Backend API Testing for Flexible Catalog Import Feature
+Tests that only GTIN and Price are required fields for catalog import.
+Name, Category, Brand are now optional fields.
 """
 
 import requests
 import json
 import sys
+import openpyxl
 from pathlib import Path
 
 # Backend URL from environment
 BACKEND_URL = "https://price-id-import.preview.emergentagent.com/api"
 
-# Test authentication credentials
-TEST_EMAIL = "testuser@test.com"
-TEST_PASSWORD = "testpass123"
-TEST_NAME = "Test User"
+# Test authentication credentials for flexible catalog import testing
+TEST_EMAIL = "flextest@test.com"
+TEST_PASSWORD = "test123"
+TEST_NAME = "FlexTest"
 
 class BackendTester:
     def __init__(self):
