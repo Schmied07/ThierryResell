@@ -1023,6 +1023,7 @@ async def import_catalog(
     try:
         # Read Excel file
         contents = await file.read()
+        logger.info(f"Catalog import: received file {file.filename}, size={len(contents)} bytes")
         
         # Try different header row positions to find the correct structure
         df = None
@@ -1031,8 +1032,10 @@ async def import_catalog(
                 temp_df = pd.read_excel(io.BytesIO(contents), header=header_row)
                 # Check if this looks like the right header row
                 col_str = ' '.join(str(col) for col in temp_df.columns)
+                logger.info(f"Trying header_row={header_row}, columns: {temp_df.columns.tolist()[:5]}")
                 if len(temp_df.columns) > 3 and ('GTIN' in col_str or 'EAN' in col_str):
                     df = temp_df
+                    logger.info(f"Found header at row {header_row}")
                     break
                 # Check if any of the first few rows contain the headers
                 for row_idx in range(min(5, len(temp_df))):
@@ -1043,13 +1046,16 @@ async def import_catalog(
                         new_columns = [str(val) if pd.notna(val) else f'Unnamed_{i}' for i, val in enumerate(row_vals.values)]
                         df = temp_df.iloc[row_idx + 1:].copy()
                         df.columns = new_columns
+                        logger.info(f"Found header in data row {row_idx}")
                         break
                 if df is not None:
                     break
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Error trying header_row={header_row}: {e}")
                 continue
         
         if df is None:
+            logger.error("Could not find GTIN/EAN columns in file")
             raise HTTPException(status_code=400, detail="Impossible de trouver les colonnes GTIN/EAN dans le fichier. Vérifiez que le fichier contient bien des colonnes GTIN, Name, Category, Brand et un prix.")
         
         # Clean up column names and find required columns
