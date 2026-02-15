@@ -111,11 +111,14 @@ backend:
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: true
           agent: "main"
           comment: "Fixed read_excel_dataframe to use scoring algorithm. The old code accepted the first row with ANY named column as header, even title rows like 'Qogita Catalog'. Now uses scoring with keyword matching, named ratio, and core field detection. Correctly finds header at row 4 for Qogita catalog files."
+        - working: true
+          agent: "testing"
+          comment: "✅ TESTED SUCCESSFULLY: POST /api/catalog/preview correctly detects all 12 columns from Qogita test file: ['GTIN', 'Name', 'Category', 'Brand', '£ Lowest Price inc. shipping', 'Unit', 'Lowest Priced Offer Inventory', 'Has Extended Delivery Time', 'Expected Delivery Time', 'Number of Offers', 'Total Inventory of All Offers', 'Product Link']. No metadata columns ('Qogita Catalog', 'Unnamed: 1') found in results. Header detection working perfectly - skips 4 metadata rows and finds actual column headers."
   
   - task: "Column auto-detect mapping"
     implemented: true
@@ -123,11 +126,14 @@ backend:
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: true
           agent: "main"
           comment: "Improved auto_detect_column_mapping to handle many more column name variations from different catalog providers. Now supports currency symbols, French/English naming, Qogita-specific columns (inventory, offers, links). All 5 required fields detected for Qogita file."
+        - working: true
+          agent: "testing"
+          comment: "✅ TESTED SUCCESSFULLY: Auto-detection correctly maps all 5 required fields: GTIN→'GTIN', Name→'Name', Category→'Category', Brand→'Brand', Price→'£ Lowest Price inc. shipping'. Also maps 3 optional fields: Inventory→'Lowest Priced Offer Inventory', Offers→'Number of Offers', Link→'Product Link'. POST /api/catalog/import successfully imports 453 products without 'missing columns' error. Sample data contains actual product data, not metadata."
 
 frontend:
   - task: "Catalog upload and preview UI"
