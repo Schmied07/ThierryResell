@@ -501,7 +501,7 @@ agent_communication:
   - agent: "main"
     message: "NEW FEATURE IMPLEMENTED: Google Search now captures ALL suppliers with prices and product links (not just lowest price). Backend: Modified Google Custom Search to store google_suppliers_results array with supplier_name, url, price, is_lowest flag. Frontend: Added 'Fournisseurs trouvés par Google' section in product detail view showing all suppliers as cards with clickable links and animated badge for lowest price. Please test: 1) POST /api/catalog/compare/{product_id} should return google_suppliers_results array, 2) Frontend catalog page should display all Google suppliers when expanding a product detail."
 
-user_problem_statement: "Resell Corner - A product price comparison and reselling platform. Users can register/login, search products by text or image, manage suppliers, set price alerts, save favorites, and configure API keys (Google, Keepa). The app uses mock data when API keys are not configured."
+user_problem_statement: "Import de catalogue flexible - seuls le prix et l'identifiant (GTIN/EAN) sont obligatoires. Les autres colonnes (Nom, Catégorie, Marque, Image) sont optionnelles et peuvent être matchées si disponibles."
 
 backend:
   - task: "User Registration"
