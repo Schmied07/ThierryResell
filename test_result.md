@@ -102,6 +102,115 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
+user_problem_statement: "Analyser l'application et ajouter des fonctionnalités qui peuvent être utiles en combinant les 2 APIs (Keepa, Google Search) pour optimiser les marges."
+
+backend:
+  - task: "Price Trend Analysis - Keepa historical data parsing and trend detection"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "NEW FEATURE: Created analyze_keepa_price_trends() function that parses Keepa CSV historical data. Calculates: avg price 30/60/90 days, min/max 30d, volatility (coefficient of variation), trend detection (hausse/baisse/stable by comparing current to avg 30d), is_favorable flag. Integrated into compare_catalog_product endpoint. Stores price_trend dict in product with all metrics."
+
+  - task: "Opportunity Score Calculation - Multi-factor scoring algorithm"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "NEW FEATURE: Created calculate_opportunity_score() function with weighted scoring (0-100 points): Margin 30%, Price Trend 25%, Competition (Google suppliers count) 20%, Volatility 15%, Price Position 10%. Returns score, level (Excellent/Bon/Moyen/Faible), and details breakdown. Integrated into compare_catalog_product endpoint. Stores opportunity_score, opportunity_level, opportunity_details in product."
+
+  - task: "Catalog products endpoint - Filters for opportunity score and trend"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "ENHANCEMENT: Added 3 new filters to GET /api/catalog/products: min_opportunity_score (int), opportunity_level (string: Excellent/Bon/Moyen/Faible), trend (string: hausse/baisse/stable). Allows filtering products by opportunity metrics."
+
+  - task: "Catalog opportunities endpoint - Sort by opportunity score"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "ENHANCEMENT: Updated GET /api/catalog/opportunities to sort by opportunity_score (descending) first, then by amazon_margin_eur as fallback. Provides intelligent prioritization of best reselling opportunities based on multi-factor analysis."
+
+frontend:
+  - task: "Catalog table - Trend and Opportunity Score columns"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Catalog.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "NEW FEATURE: Added 2 new columns to Products table: 'Tendance' (shows icon + text for hausse/baisse/stable with color coding), 'Score' (shows badge with score/100 and level with color: purple for Excellent, green for Bon, yellow for Moyen, gray for Faible). Created helper functions getTrendIcon() and getOpportunityScoreBadge(). Added filters for min_opportunity_score, opportunity_level, and trend."
+
+  - task: "Product detail view - Price Trend Analysis section"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Catalog.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "NEW FEATURE: Added '📊 Analyse de Tendances' section in expandable product detail. Displays: Current trend with icon (hausse/baisse/stable) and favorable badge, Volatility bar with percentage and label, Price averages grid (30/60/90d), Min/Max range (30d) with price difference. Blue gradient background with border."
+
+  - task: "Product detail view - Opportunity Score section"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Catalog.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "NEW FEATURE: Added '⭐ Score d'Opportunité' section in expandable product detail. Features: Circular gauge SVG showing score/100 with color-coded arc (purple/green/yellow/gray), Level badge below gauge, Detailed breakdown of 5 scoring factors with icons (Marge 30pts, Tendance 25pts, Concurrence 20pts, Volatilité 15pts, Prix vs historique 10pts). Purple gradient background with border."
+
+metadata:
+  created_by: "main_agent"
+  version: "2.0"
+  test_sequence: 0
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Price Trend Analysis - Keepa historical data parsing and trend detection"
+    - "Opportunity Score Calculation - Multi-factor scoring algorithm"
+    - "Catalog table - Trend and Opportunity Score columns"
+    - "Product detail view - Price Trend Analysis section"
+    - "Product detail view - Opportunity Score section"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "NOUVELLES FONCTIONNALITÉS IMPLÉMENTÉES pour optimiser les marges en combinant Keepa + Google APIs: 1) ANALYSE DE TENDANCES KEEPA: Parse l'historique complet des prix, calcule moyennes 30/60/90j, min/max, volatilité, détecte tendance (hausse/baisse/stable), identifie moments favorables. 2) SCORE D'OPPORTUNITÉ (0-100): Combine marge (30%), tendance prix (25%), concurrence Google (20%), volatilité (15%), position prix (10%). Niveaux: Excellent/Bon/Moyen/Faible. Backend: nouvelles fonctions analyze_keepa_price_trends() et calculate_opportunity_score(), intégrées dans compare_catalog_product, nouveaux filtres sur /catalog/products, tri intelligent sur /catalog/opportunities. Frontend: 2 nouvelles colonnes (Tendance, Score), 2 nouvelles sections détaillées avec gauges/graphiques/breakdowns. Prêt pour test backend puis frontend."
+
 user_problem_statement: "Quand on ajoute un catalogue fournisseur, obtenir le prix Amazon via Keepa API et TOUS les prix des fournisseurs via Google API avec leurs liens. Le prix le plus bas Google doit être mis en avant."
 
 backend:
