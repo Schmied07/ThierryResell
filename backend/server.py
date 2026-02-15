@@ -1879,6 +1879,13 @@ async def compare_catalog_product(
     else:
         is_mock_data = False
     
+    # ==================== PRICE TREND ANALYSIS ====================
+    price_trend = None
+    if keepa_product and amazon_price:
+        price_trend = analyze_keepa_price_trends(keepa_product, amazon_price)
+        if price_trend:
+            logger.info(f"Price trend analysis for {product['name']}: trend={price_trend['trend']}, volatility={price_trend['volatility']}%, favorable={price_trend['is_favorable']}")
+    
     # ==================== CALCULATE COMPARISONS ====================
     
     # Amazon fees (15% TTC) - only if amazon price is available
