@@ -694,6 +694,12 @@ const Catalog = () => {
                                       <Badge variant="secondary" className="text-xs">-</Badge>
                                     )}
                                   </TableCell>
+                                  <TableCell className="text-center">
+                                    {getTrendIcon(product.price_trend?.trend)}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    {getOpportunityScoreBadge(product.opportunity_score, product.opportunity_level)}
+                                  </TableCell>
                                   <TableCell onClick={(e) => e.stopPropagation()}>
                                     <div className="flex items-center gap-1">
                                       <Button
