@@ -645,15 +645,28 @@ frontend:
         - agent: "main"
         - comment: "Catalog page at /catalog (protected) with 3 tabs: Import (Excel file upload with drag&drop), Products (table with filters, pagination, batch compare, export), Opportunities (best margins sorted). Stats cards show total products, compared products, potential margin, best margin. Supports file import, price comparison (single/batch), filtering, search, export to Excel."
 
+  - task: "Rechercher tous les produits button on Catalog page"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Catalog.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "Added 'Rechercher tous les produits' button in Products tab. Calls POST /api/catalog/compare-all. Shows loading spinner, confirmation dialog, disabled when empty catalog."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 2
+  test_sequence: 3
   run_ui: false
 
 test_plan:
   current_focus:
-    - "Catalog export - new columns for comparison data"
+    - "Compare All Catalog Products endpoint"
+    - "Rechercher tous les produits button on Catalog page"
   stuck_tasks:
     - "Suppliers Page"
     - "Alerts Page"
@@ -662,12 +675,4 @@ test_plan:
 
 agent_communication:
     - agent: "main"
-    - message: "Application is Resell Corner. Backend is FastAPI on port 8001, Frontend is React on port 3000. Backend uses MongoDB. All endpoints require JWT auth except /api/auth/register, /api/auth/login, /api/health, and /api/. Please test all backend endpoints thoroughly. Register a user first, then use the token for authenticated endpoints. Test CRUD operations for suppliers, alerts, and favorites. Test text search. Backend URL for testing: http://localhost:8001"
-    - agent: "testing"
-    - message: "Backend testing completed successfully! Tested 25 endpoints with 22/25 passing. Core functionality working: Authentication (login/register/me), API keys management, full CRUD for suppliers/alerts/favorites, text search with MOCK data, dashboard stats, and search history. Minor issues: PUT /alerts/{id} not implemented (only toggle available), Keepa endpoint has infrastructure error (520). All critical features operational. Authentication working perfectly with JWT tokens. MOCK data being used appropriately for search when API keys not configured."
-    - agent: "testing"
-    - message: "Frontend testing completed with most features working but found two critical issues: 1) Suppliers Page - Adding a supplier works (toast notification appears) but the supplier doesn't appear in the list. 2) Alerts Page - Adding an alert works (toast notification appears) but the alert doesn't appear in the list. All other features are working properly: Landing Page, Auth (registration/login/logout), Dashboard, Search Results, Favorites, and Settings pages all function as expected. The app displays mock data for search results and properly shows the demo mode banner in settings."
-    - agent: "main"
-    - message: "NEW FEATURE IMPLEMENTED: Catalog Import & Price Comparison System. Added complete backend API with 8 new endpoints for importing Excel catalogs, comparing prices with Amazon (via Keepa) and Google Shopping, calculating margins, and exporting results. Frontend includes new /catalog page with Import, Products, and Opportunities tabs. Features include: Excel import with GBP to EUR conversion, batch price comparison, margin calculation, filtering, pagination, and Excel export. Ready for testing with real catalog file available at /app/catalog_sample.xlsx. User MUST have Keepa and Google API keys configured for real price data, otherwise comparison will show limited results."
-    - agent: "testing"
-    - message: "CATALOG COMPARISON BACKEND TESTING COMPLETED SUCCESSFULLY! All 3 high-priority catalog endpoints are working correctly: 1) GET /api/catalog/stats - Returns proper stats including new fields (profitable_products, amazon_fee_percentage=15.0). 2) POST /api/catalog/compare/{product_id} - Handles nonexistent products correctly (404), batch compare works. 3) GET /api/catalog/opportunities - Returns proper structure. MOCK DATA functionality confirmed working when no API keys configured. Authentication properly enforced (403/401). All 9 test cases passed. Only remaining task: Catalog export endpoint (low priority)."
+    - message: "NEW FEATURE: Added 'Rechercher tous les produits' button. Backend endpoint POST /api/catalog/compare-all fetches all user product IDs and runs comparison. Frontend button in Products tab with blue gradient, search icon, loading state, confirmation dialog. Please test: 1) POST /api/catalog/compare-all with no products (should 404), 2) Import catalog first, then call compare-all (should return success count). Register user, import catalog with POST /api/catalog/import, then test POST /api/catalog/compare-all. Backend URL: http://localhost:8001"
