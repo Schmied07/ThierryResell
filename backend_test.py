@@ -272,6 +272,111 @@ class BackendTester:
         self.log(f"✅ API structure consistency verified")
         return True
     
+    def test_compare_all_empty_catalog(self) -> bool:
+        """Test compare-all endpoint when catalog is empty"""
+        self.log("=== Testing Compare All Products (Empty Catalog) ===")
+        
+        response = self.make_request("POST", "/catalog/compare-all")
+        
+        if response["status_code"] == 404:
+            if "Aucun produit dans le catalogue" in str(response["data"]):
+                self.log(f"✅ Compare-all correctly returns 404 for empty catalog")
+                return True
+            else:
+                self.log(f"❌ Got 404 but wrong message: {response['data']}", "ERROR")
+                return False
+        else:
+            self.log(f"❌ Expected 404 for empty catalog, got {response['status_code']}: {response['data']}", "ERROR")
+            return False
+    
+    def test_catalog_import(self) -> bool:
+        """Test catalog import with sample file"""
+        self.log("=== Testing Catalog Import ===")
+        
+        try:
+            # Upload the catalog file
+            with open('/app/catalog_sample.xlsx', 'rb') as file:
+                files = {'file': ('catalog_sample.xlsx', file, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
+                
+                url = f"{self.base_url}/catalog/import"
+                headers = {"Authorization": f"Bearer {self.token}"}
+                
+                response = requests.post(url, files=files, headers=headers, timeout=60)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    imported = data.get('imported', 0)
+                    if imported > 0:
+                        self.log(f"✅ Catalog import successful. Imported {imported} products")
+                        return True
+                    else:
+                        self.log(f"❌ Import succeeded but 0 products imported: {data}", "ERROR")
+                        return False
+                else:
+                    self.log(f"❌ Catalog import failed: {response.status_code} - {response.text}", "ERROR")
+                    return False
+                    
+        except Exception as e:
+            self.log(f"❌ Catalog import error: {str(e)}", "ERROR")
+            return False
+    
+    def test_compare_all_with_products(self) -> bool:
+        """Test compare-all endpoint after importing products"""
+        self.log("=== Testing Compare All Products (With Products) ===")
+        
+        response = self.make_request("POST", "/catalog/compare-all")
+        
+        if response["success"]:
+            data = response["data"]
+            
+            # Check required fields
+            required_fields = ['total', 'success', 'failed', 'results', 'errors']
+            missing_fields = [field for field in required_fields if field not in data]
+            if missing_fields:
+                self.log(f"❌ Missing fields in compare-all response: {missing_fields}", "ERROR")
+                return False
+            
+            # Validate field types and values
+            if not isinstance(data['total'], int) or data['total'] <= 0:
+                self.log(f"❌ Total should be positive integer, got {data['total']}", "ERROR")
+                return False
+                
+            if not isinstance(data['success'], int) or data['success'] < 0:
+                self.log(f"❌ Success count should be non-negative integer, got {data['success']}", "ERROR")
+                return False
+                
+            if not isinstance(data['failed'], int) or data['failed'] < 0:
+                self.log(f"❌ Failed count should be non-negative integer, got {data['failed']}", "ERROR")
+                return False
+                
+            if data['total'] != (data['success'] + data['failed']):
+                self.log(f"❌ Total ({data['total']}) should equal success ({data['success']}) + failed ({data['failed']})", "ERROR")
+                return False
+                
+            if not isinstance(data['results'], list):
+                self.log(f"❌ Results should be a list, got {type(data['results'])}", "ERROR")
+                return False
+                
+            if not isinstance(data['errors'], list):
+                self.log(f"❌ Errors should be a list, got {type(data['errors'])}", "ERROR")
+                return False
+            
+            # Check that results count matches success count
+            if len(data['results']) != data['success']:
+                self.log(f"❌ Results array length ({len(data['results'])}) doesn't match success count ({data['success']})", "ERROR")
+                return False
+                
+            # Check that errors count matches failed count
+            if len(data['errors']) != data['failed']:
+                self.log(f"❌ Errors array length ({len(data['errors'])}) doesn't match failed count ({data['failed']})", "ERROR")
+                return False
+            
+            self.log(f"✅ Compare-all successful. Total: {data['total']}, Success: {data['success']}, Failed: {data['failed']}")
+            return True
+        else:
+            self.log(f"❌ Compare-all failed: {response['data']}", "ERROR")
+            return False
+
     def test_mock_data_availability(self) -> bool:
         """Test that mock data is available when no API keys configured"""
         self.log("=== Testing Mock Data Availability ===")
