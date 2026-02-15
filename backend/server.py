@@ -1517,6 +1517,41 @@ async def compare_batch(
         'errors': errors
     }
 
+@api_router.post("/catalog/compare-all")
+async def compare_all_products(
+    user: dict = Depends(get_current_user)
+):
+    """Compare ALL products in the catalog for the current user"""
+    # Fetch all product IDs for this user
+    all_products = await db.catalog_products.find(
+        {'user_id': user['id']},
+        {'id': 1, '_id': 0}
+    ).to_list(10000)
+    
+    if not all_products:
+        raise HTTPException(status_code=404, detail="Aucun produit dans le catalogue")
+    
+    product_ids = [p['id'] for p in all_products]
+    total = len(product_ids)
+    
+    results = []
+    errors = []
+    
+    for product_id in product_ids:
+        try:
+            result = await compare_catalog_product(product_id, user)
+            results.append(result)
+        except Exception as e:
+            errors.append({'product_id': product_id, 'error': str(e)})
+    
+    return {
+        'total': total,
+        'success': len(results),
+        'failed': len(errors),
+        'results': results,
+        'errors': errors
+    }
+
 @api_router.get("/catalog/opportunities")
 async def get_opportunities(
     user: dict = Depends(get_current_user),
