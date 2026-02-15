@@ -118,7 +118,7 @@ class BackendTester:
                 data = response.json()
                 
                 # Validate response structure
-                expected_keys = ["columns", "sample_data", "total_rows", "suggested_mapping", "required_fields", "optional_fields"]
+                expected_keys = ["columns", "sample_data", "total_rows", "suggested_mapping"]
                 for key in expected_keys:
                     if key not in data:
                         self.error(f"Preview response missing key: {key}")
@@ -130,45 +130,60 @@ class BackendTester:
                 sample_data = data["sample_data"]
                 
                 self.log(f"Preview successful - Found {len(columns)} columns, {total_rows} total rows")
-                self.log(f"Columns detected: {', '.join(columns[:5])}{'...' if len(columns) > 5 else ''}")
+                self.log(f"Columns detected: {columns}")
                 
-                # Check that we don't have metadata columns like "Qogita Catalog", "Unnamed: 1"
-                bad_columns = [col for col in columns if "Qogita Catalog" in col or col.startswith("Unnamed")]
-                if bad_columns:
-                    self.error(f"Found metadata/unnamed columns that should have been skipped: {bad_columns}")
-                    return False
+                # Verify expected columns from test file
+                expected_columns = ['Product Code', 'Product Title', 'Product Type', 'Manufacturer', 'Supplier Price', 'Product Image URL']
+                if columns == expected_columns:
+                    self.log("✓ All expected columns detected correctly")
                 else:
-                    self.log("✓ No metadata columns found - header detection working correctly")
-                
-                # Check suggested mapping has required fields
-                required_fields = ["GTIN", "Name", "Category", "Brand", "Price"]
-                mapped_fields = [field for field in required_fields if field in suggested_mapping and suggested_mapping[field]]
-                
-                if len(mapped_fields) >= 3:  # At least 3/5 required fields should be detected
-                    self.log(f"Auto-detection working - mapped {len(mapped_fields)}/5 required fields: {mapped_fields}")
-                else:
-                    self.error(f"Auto-detection failed - only mapped {len(mapped_fields)}/5 required fields: {mapped_fields}")
-                    self.error(f"Suggested mapping: {suggested_mapping}")
+                    self.error(f"Column mismatch. Expected: {expected_columns}, Got: {columns}")
                     return False
                 
-                # Check total rows is reasonable (around 453 as mentioned)
-                if total_rows > 400 and total_rows < 500:
-                    self.log(f"Total rows count looks correct: {total_rows}")
-                else:
-                    self.log(f"Total rows count: {total_rows} (expected around 453)")
+                # Check suggested mapping auto-detects the fields
+                self.log(f"Suggested mapping: {suggested_mapping}")
                 
-                # Check sample data
-                if len(sample_data) > 0:
-                    self.log(f"Sample data provided: {len(sample_data)} rows")
-                    # Check that sample data contains actual product data, not metadata
-                    first_row = sample_data[0]
-                    if any("Qogita" in str(val) for val in first_row.values() if val):
-                        self.error("Sample data contains metadata - header detection may be wrong")
-                        return False
+                # Verify auto-detection maps the test file columns correctly
+                expected_mappings = {
+                    'GTIN': 'Product Code',
+                    'Name': 'Product Title', 
+                    'Category': 'Product Type',
+                    'Brand': 'Manufacturer',
+                    'Price': 'Supplier Price',
+                    'Image': 'Product Image URL'
+                }
+                
+                mapping_correct = True
+                for app_field, expected_column in expected_mappings.items():
+                    if suggested_mapping.get(app_field) == expected_column:
+                        self.log(f"✓ {app_field} correctly mapped to '{expected_column}'")
                     else:
-                        self.log("✓ Sample data looks like actual product data")
+                        self.error(f"✗ {app_field} mapping incorrect. Expected: '{expected_column}', Got: '{suggested_mapping.get(app_field)}'")
+                        mapping_correct = False
+                
+                if not mapping_correct:
+                    return False
+                
+                # Check total rows (should be 3 for test file)
+                if total_rows == 3:
+                    self.log(f"✓ Total rows count correct: {total_rows}")
                 else:
-                    self.error("No sample data provided")
+                    self.error(f"Total rows count incorrect. Expected: 3, Got: {total_rows}")
+                    return False
+                
+                # Check sample data has 3 rows
+                if len(sample_data) == 3:
+                    self.log(f"✓ Sample data provided: {len(sample_data)} rows")
+                    
+                    # Verify sample data contains expected product data
+                    first_row = sample_data[0]
+                    if 'Product Code' in first_row and str(first_row['Product Code']) == '3574661517506':
+                        self.log("✓ Sample data contains expected product data (Elmex Junior)")
+                    else:
+                        self.error(f"Sample data doesn't match expected content: {first_row}")
+                        return False
+                else:
+                    self.error(f"Sample data count incorrect. Expected: 3, Got: {len(sample_data)}")
                     return False
                 
                 return True
