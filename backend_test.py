@@ -14,7 +14,7 @@ from datetime import datetime
 import pandas as pd
 
 # Use the public backend URL from environment
-BACKEND_URL = "https://image-search-catalog.preview.emergentagent.com/api"
+BACKEND_URL = "https://catalog-column-issue.preview.emergentagent.com/api"
 
 class BackendTester:
     def __init__(self):

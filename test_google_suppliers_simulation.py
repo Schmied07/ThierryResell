@@ -8,7 +8,7 @@ import httpx
 import json
 from datetime import datetime
 
-BACKEND_URL = "https://image-search-catalog.preview.emergentagent.com/api"
+BACKEND_URL = "https://catalog-column-issue.preview.emergentagent.com/api"
 
 async def test_api_keys_setup():
     """Test setting up Google API keys and verify the feature works with real API keys"""

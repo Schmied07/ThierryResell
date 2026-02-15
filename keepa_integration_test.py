@@ -7,7 +7,7 @@ import time
 from typing import Dict, Any
 
 # Configuration - Use the correct backend URL from frontend/.env
-BASE_URL = "https://image-search-catalog.preview.emergentagent.com"
+BASE_URL = "https://catalog-column-issue.preview.emergentagent.com"
 API_PREFIX = "/api"
 
 # Real Keepa API key provided in review request

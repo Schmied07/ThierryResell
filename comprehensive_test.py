@@ -8,7 +8,7 @@ import httpx
 import json
 from datetime import datetime
 
-BACKEND_URL = "https://image-search-catalog.preview.emergentagent.com/api"
+BACKEND_URL = "https://catalog-column-issue.preview.emergentagent.com/api"
 
 async def comprehensive_test():
     """Run comprehensive tests covering all aspects of the Google Suppliers feature"""
