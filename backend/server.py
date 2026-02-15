@@ -1534,41 +1534,165 @@ async def get_keepa_product(asin: str, user: dict = Depends(get_current_user)):
 
 # ==================== CATALOG ENDPOINTS ====================
 
+def _is_good_header_row(columns) -> bool:
+    """Check if a list of column names looks like a real header row.
+    
+    A good header row has:
+    - Most columns are meaningful text (not 'Unnamed')
+    - OR contains well-known catalog keywords
+    """
+    total = len(columns)
+    if total == 0:
+        return False
+    
+    named_cols = [c for c in columns if isinstance(c, str) and not c.startswith('Unnamed') and len(c.strip()) > 0]
+    named_ratio = len(named_cols) / total
+    
+    # At least 50% of columns must be named (not Unnamed)
+    if named_ratio < 0.5:
+        return False
+    
+    # Check for well-known catalog/product keywords in column names
+    catalog_keywords = [
+        'gtin', 'ean', 'barcode', 'upc', 'isbn', 'asin', 'sku', 'ref',
+        'name', 'nom', 'title', 'titre', 'description', 'désignation', 'designation', 'produit', 'product',
+        'category', 'catégorie', 'categorie',
+        'brand', 'marque', 'manufacturer', 'fabricant',
+        'price', 'prix', 'cost', 'coût', 'tarif', '£', '€', '$',
+        'image', 'photo', 'img', 'picture', 'thumbnail',
+        'inventory', 'stock', 'quantity', 'quantité', 'qty',
+        'offer', 'offre', 'seller', 'vendeur',
+        'link', 'url', 'lien',
+        'unit', 'unité', 'weight', 'poids',
+        'delivery', 'livraison', 'shipping', 'expédition',
+    ]
+    all_cols_lower = ' '.join(str(c).lower() for c in named_cols)
+    keyword_matches = sum(1 for kw in catalog_keywords if kw in all_cols_lower)
+    
+    # If we have keyword matches AND good named ratio, it's a real header
+    if keyword_matches >= 2:
+        return True
+    
+    # If very high ratio of named columns but no keywords, be cautious
+    # (could be metadata rows like "Qogita Catalog" merged across columns)
+    if named_ratio >= 0.8 and len(named_cols) >= 3:
+        # Extra check: make sure columns look like individual field names (short, distinct)
+        avg_len = sum(len(c) for c in named_cols) / len(named_cols)
+        if avg_len < 60:  # Real headers are usually short
+            return True
+    
+    return False
+
+
 def read_excel_dataframe(contents: bytes) -> pd.DataFrame:
-    """Read Excel file and detect header row, returns DataFrame"""
-    df = None
-    for header_row in range(20):
+    """Read Excel file and detect header row, returns DataFrame.
+    
+    Handles files with metadata rows (titles, disclaimers, filters) before the actual headers.
+    Uses a scoring approach to find the best header row.
+    """
+    best_df = None
+    best_score = -1
+    
+    catalog_keywords = ['gtin', 'ean', 'barcode', 'upc', 'name', 'nom', 'title', 'brand', 'marque',
+                        'price', 'prix', '£', '€', 'category', 'catégorie', 'categorie',
+                        'image', 'photo', 'inventory', 'stock', 'sku', 'ref', 'product', 'produit',
+                        'description', 'désignation', 'designation', 'offer', 'link', 'url',
+                        'unit', 'delivery', 'shipping', 'weight', 'quantity']
+    
+    for header_row in range(30):
         try:
             temp_df = pd.read_excel(io.BytesIO(contents), header=header_row)
             
-            # Check if columns look like header names (not numbers/dates)
-            has_text_cols = any(isinstance(col, str) and not col.startswith('Unnamed') for col in temp_df.columns)
+            if len(temp_df.columns) < 2 or len(temp_df) == 0:
+                continue
             
-            if len(temp_df.columns) > 2 and has_text_cols:
-                df = temp_df
-                break
+            columns = [str(c).strip() for c in temp_df.columns]
             
-            # Check if any of the first few rows contain header-like data
-            for row_idx in range(min(5, len(temp_df))):
-                row_vals = temp_df.iloc[row_idx]
-                row_str = ' '.join(str(v) for v in row_vals.values if pd.notna(v))
-                # Look for common header keywords
-                if any(kw in row_str.lower() for kw in ['gtin', 'ean', 'name', 'brand', 'price', 'category', 'nom', 'marque', 'prix']):
-                    new_columns = [str(val) if pd.notna(val) else f'Unnamed_{i}' for i, val in enumerate(row_vals.values)]
-                    df = temp_df.iloc[row_idx + 1:].copy()
-                    df.columns = new_columns
-                    break
-            if df is not None:
+            # Score this header row
+            score = 0
+            named_cols = [c for c in columns if not c.startswith('Unnamed') and len(c) > 0]
+            named_ratio = len(named_cols) / len(columns) if columns else 0
+            
+            # Bonus for high named ratio
+            score += named_ratio * 10
+            
+            # Bonus for keyword matches in column names
+            all_cols_lower = ' '.join(c.lower() for c in named_cols)
+            keyword_hits = sum(1 for kw in catalog_keywords if kw in all_cols_lower)
+            score += keyword_hits * 5
+            
+            # Penalty for very long column names (likely data, not headers)
+            if named_cols:
+                avg_len = sum(len(c) for c in named_cols) / len(named_cols)
+                if avg_len > 80:
+                    score -= 20
+                elif avg_len > 50:
+                    score -= 10
+            
+            # Penalty for very few named columns
+            if len(named_cols) < 2:
+                score -= 15
+            
+            # Strong bonus if we have core required fields
+            core_fields_found = 0
+            for kw_group in [['gtin', 'ean', 'barcode', 'upc'], ['name', 'nom', 'title', 'produit', 'product', 'description'], 
+                             ['brand', 'marque'], ['price', 'prix', '£', '€'], ['category', 'catégorie', 'categorie']]:
+                if any(kw in all_cols_lower for kw in kw_group):
+                    core_fields_found += 1
+            score += core_fields_found * 8
+            
+            logger.debug(f"Header row {header_row}: score={score}, named={len(named_cols)}/{len(columns)}, keywords={keyword_hits}, core={core_fields_found}")
+            
+            if score > best_score:
+                best_score = score
+                best_df = temp_df
+                
+            # If we found a really good header (most cols named + multiple keywords), stop early
+            if named_ratio >= 0.7 and keyword_hits >= 3 and core_fields_found >= 3:
                 break
+                
         except Exception:
             continue
     
-    if df is None:
-        # Fallback: just read with first row as header
-        df = pd.read_excel(io.BytesIO(contents), header=0)
+    # Also try scanning rows within the first read for header keywords (handles merged header cells)
+    if best_score < 20:
+        try:
+            raw_df = pd.read_excel(io.BytesIO(contents), header=None)
+            for row_idx in range(min(30, len(raw_df))):
+                row_vals = raw_df.iloc[row_idx]
+                row_strs = [str(v).strip() if pd.notna(v) else '' for v in row_vals.values]
+                row_str_lower = ' '.join(s.lower() for s in row_strs)
+                
+                keyword_hits = sum(1 for kw in catalog_keywords if kw in row_str_lower)
+                named_in_row = sum(1 for s in row_strs if len(s) > 0)
+                
+                if keyword_hits >= 3 and named_in_row >= 3:
+                    new_columns = [s if len(s) > 0 else f'Unnamed_{i}' for i, s in enumerate(row_strs)]
+                    candidate_df = raw_df.iloc[row_idx + 1:].copy()
+                    candidate_df.columns = new_columns
+                    
+                    # Score this candidate
+                    named_ratio = sum(1 for c in new_columns if not c.startswith('Unnamed')) / len(new_columns)
+                    candidate_score = named_ratio * 10 + keyword_hits * 5
+                    
+                    if candidate_score > best_score:
+                        best_score = candidate_score
+                        best_df = candidate_df
+                        break
+        except Exception:
+            pass
     
-    df.columns = [str(col).strip() for col in df.columns]
-    return df
+    if best_df is None:
+        # Fallback: just read with first row as header
+        best_df = pd.read_excel(io.BytesIO(contents), header=0)
+    
+    best_df.columns = [str(col).strip() for col in best_df.columns]
+    
+    # Remove fully empty rows
+    best_df = best_df.dropna(how='all').reset_index(drop=True)
+    
+    logger.info(f"Excel parsed: {len(best_df)} rows, columns: {list(best_df.columns)}")
+    return best_df
 
 
 def auto_detect_column_mapping(columns: list) -> dict:
