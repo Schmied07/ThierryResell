@@ -1299,23 +1299,35 @@ def generate_mock_catalog_prices(product: dict) -> dict:
 
 
 def extract_price_from_text(text: str) -> Optional[float]:
-    """Extract price from text string (supports €, EUR formats)"""
-    # Match patterns like: 29,99€, 29.99€, €29.99, 29,99 EUR, etc.
+    """Extract price from text string (supports €, EUR, various formats)"""
+    if not text:
+        return None
+    
+    # Match patterns like: 29,99€, 29.99€, €29.99, 29,99 EUR, 29€, 129 €, etc.
     patterns = [
-        r'(\d+[.,]\d{2})\s*€',
-        r'€\s*(\d+[.,]\d{2})',
-        r'(\d+[.,]\d{2})\s*EUR',
-        r'EUR\s*(\d+[.,]\d{2})',
-        r'(\d+[.,]\d{2})\s*eur',
+        # With decimals
+        r'(\d+[.,]\d{1,2})\s*€',
+        r'€\s*(\d+[.,]\d{1,2})',
+        r'(\d+[.,]\d{1,2})\s*EUR',
+        r'EUR\s*(\d+[.,]\d{1,2})',
+        r'(\d+[.,]\d{1,2})\s*eur',
+        r'(\d+[.,]\d{1,2})\s*euros?',
+        # Without decimals (whole numbers)
+        r'(\d+)\s*€',
+        r'€\s*(\d+)',
+        r'(\d+)\s*EUR\b',
+        r'EUR\s*(\d+)\b',
+        # Price patterns like "prix: 29.99" or "price: 29,99"
+        r'(?:prix|price)[:\s]+(\d+[.,]?\d*)',
     ]
     
     prices = []
     for pattern in patterns:
-        matches = re.findall(pattern, text)
+        matches = re.findall(pattern, text, re.IGNORECASE)
         for match in matches:
             try:
                 price = float(match.replace(',', '.'))
-                if 0.01 < price < 100000:  # Sanity check
+                if 0.50 < price < 50000:  # Sanity check - reasonable price range
                     prices.append(price)
             except ValueError:
                 continue
