@@ -1309,6 +1309,21 @@ def generate_mock_catalog_prices(product: dict) -> dict:
     }
 
 
+def extract_supplier_name_from_url(url: str) -> str:
+    """Extract supplier name from URL domain"""
+    try:
+        from urllib.parse import urlparse
+        domain = urlparse(url).netloc
+        # Remove www. and common TLDs
+        domain = domain.replace('www.', '')
+        # Extract main name (before first dot or take first part)
+        name = domain.split('.')[0]
+        # Capitalize first letter
+        return name.capitalize()
+    except Exception:
+        return "Fournisseur"
+
+
 def extract_price_from_text(text: str) -> Optional[float]:
     """Extract price from text string (supports €, EUR, various formats)"""
     if not text:
