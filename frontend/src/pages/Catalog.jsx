@@ -928,7 +928,7 @@ const Catalog = () => {
                       </div>
                       <Button
                         onClick={handleImport}
-                        disabled={uploading || ['GTIN', 'Name', 'Category', 'Brand', 'Price'].some(f => !columnMapping[f])}
+                        disabled={uploading || ['GTIN', 'Price'].some(f => !columnMapping[f])}
                         className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold px-6 py-2 shadow-lg"
                       >
                         {uploading ? (
