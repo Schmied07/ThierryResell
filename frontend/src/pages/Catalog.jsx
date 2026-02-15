@@ -798,10 +798,13 @@ const Catalog = () => {
                           {/* Optional Fields Section */}
                           <div>
                             <p className="text-zinc-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-2">
-                              <span className="text-zinc-600">●</span> Champ optionnel
+                              <span className="text-zinc-600">●</span> Champs optionnels
                             </p>
                             <div className="space-y-2">
                               {[
+                                { field: 'Name', label: 'Nom du produit', icon: '📝', desc: 'Nom/désignation' },
+                                { field: 'Category', label: 'Catégorie', icon: '📁', desc: 'Catégorie' },
+                                { field: 'Brand', label: 'Marque', icon: '🏷️', desc: 'Marque/fabricant' },
                                 { field: 'Image', label: 'Image URL', icon: '🖼️', desc: 'URL image - recherche Google par image' }
                               ].map(({ field, label, icon, desc }) => {
                                 const mappedColumn = columnMapping[field];
