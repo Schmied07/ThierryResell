@@ -7,7 +7,7 @@ import time
 from typing import Dict, Any
 
 # Configuration
-BASE_URL = "https://catalog-search-2.preview.emergentagent.com"
+BASE_URL = "https://keepa-dual-search.preview.emergentagent.com"
 API_PREFIX = "/api"
 
 class BackendTester:
