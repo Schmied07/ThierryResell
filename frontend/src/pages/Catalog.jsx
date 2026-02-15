@@ -210,11 +210,42 @@ const Catalog = () => {
     });
   };
 
+  // Visual mapping handlers
+  const handleFileColumnClick = (columnName) => {
+    if (selectedFileColumn === columnName) {
+      setSelectedFileColumn(null);
+    } else {
+      setSelectedFileColumn(columnName);
+      setSelectedAppField(null);
+    }
+  };
+
+  const handleAppFieldClick = (fieldName) => {
+    if (selectedFileColumn) {
+      // Map the selected file column to this app field
+      handleMappingChange(fieldName, selectedFileColumn);
+      setSelectedFileColumn(null);
+      setSelectedAppField(null);
+      toast.success(`Colonne "${selectedFileColumn}" → Champ "${fieldName}"`);
+    } else if (selectedAppField === fieldName) {
+      setSelectedAppField(null);
+    } else {
+      setSelectedAppField(fieldName);
+    }
+  };
+
+  const handleRemoveMapping = (fieldName) => {
+    handleMappingChange(fieldName, '');
+    toast.info(`Mapping supprimé pour "${fieldName}"`);
+  };
+
   const resetImport = () => {
     setFile(null);
     setImportStep(1);
     setPreviewData(null);
     setColumnMapping({});
+    setSelectedFileColumn(null);
+    setSelectedAppField(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
