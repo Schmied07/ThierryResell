@@ -1696,22 +1696,97 @@ def read_excel_dataframe(contents: bytes) -> pd.DataFrame:
 
 
 def auto_detect_column_mapping(columns: list) -> dict:
-    """Auto-detect column mapping from column names"""
+    """Auto-detect column mapping from column names.
+    
+    Handles many variations of column names from different catalog providers
+    (Qogita, Ankorstore, custom exports, etc.)
+    """
     column_mapping = {}
+    
     for col in columns:
-        col_lower = col.lower()
-        if 'GTIN' not in column_mapping and ('gtin' in col_lower or 'ean' in col_lower or 'barcode' in col_lower):
+        col_lower = col.lower().strip()
+        col_stripped = col_lower.replace('_', ' ').replace('-', ' ')
+        
+        # GTIN / EAN / Barcode
+        if 'GTIN' not in column_mapping and any(kw in col_lower for kw in [
+            'gtin', 'ean', 'barcode', 'upc', 'isbn', 'asin',
+            'code barre', 'code-barre', 'codebarre',
+            'code ean', 'code gtin',
+        ]):
             column_mapping['GTIN'] = col
-        elif 'Name' not in column_mapping and ('name' in col_lower or 'nom' in col_lower or 'désignation' in col_lower or 'designation' in col_lower or 'produit' in col_lower) and 'brand' not in col_lower and 'file' not in col_lower:
+        
+        # Product Name / Title / Description
+        elif 'Name' not in column_mapping and any(kw in col_stripped for kw in [
+            'product name', 'nom du produit', 'nom produit',
+            'désignation', 'designation', 'libellé', 'libelle',
+            'title', 'titre',
+        ]):
             column_mapping['Name'] = col
-        elif 'Category' not in column_mapping and ('category' in col_lower or 'catégorie' in col_lower or 'categorie' in col_lower):
+        elif 'Name' not in column_mapping and col_lower in ['name', 'nom', 'produit', 'product', 'description', 'article']:
+            column_mapping['Name'] = col
+        elif 'Name' not in column_mapping and ('name' in col_lower or 'nom' in col_lower) and 'brand' not in col_lower and 'file' not in col_lower and 'marque' not in col_lower:
+            column_mapping['Name'] = col
+        
+        # Category
+        elif 'Category' not in column_mapping and any(kw in col_lower for kw in [
+            'category', 'catégorie', 'categorie', 'categ',
+            'famille', 'type de produit', 'product type',
+            'sous-catégorie', 'sous catégorie', 'subcategory',
+            'rayon', 'gamme',
+        ]):
             column_mapping['Category'] = col
-        elif 'Brand' not in column_mapping and ('brand' in col_lower or 'marque' in col_lower):
+        
+        # Brand
+        elif 'Brand' not in column_mapping and any(kw in col_lower for kw in [
+            'brand', 'marque', 'manufacturer', 'fabricant',
+            'fournisseur', 'supplier', 'vendor', 'vendeur',
+            'maker', 'label',
+        ]):
             column_mapping['Brand'] = col
-        elif 'Price' not in column_mapping and ('price' in col_lower or 'prix' in col_lower or 'lowest' in col_lower or '£' in col or '€' in col):
+        
+        # Price (prioritize columns with currency symbols or specific price keywords)
+        elif 'Price' not in column_mapping and (
+            '£' in col or '€' in col or '$' in col or
+            any(kw in col_lower for kw in [
+                'price', 'prix', 'tarif', 'coût', 'cout', 'cost',
+                'montant', 'amount', 'unit price', 'prix unitaire',
+                'prix ht', 'prix ttc', 'ppc', 'pvp', 'msrp', 'rrp',
+                'lowest price', 'best price', 'selling price',
+            ])
+        ):
             column_mapping['Price'] = col
-        elif 'Image' not in column_mapping and ('image' in col_lower or 'photo' in col_lower or 'img' in col_lower or 'picture' in col_lower or 'thumbnail' in col_lower):
+        
+        # Image
+        elif 'Image' not in column_mapping and any(kw in col_lower for kw in [
+            'image', 'photo', 'img', 'picture', 'thumbnail',
+            'image url', 'photo url', 'visuel', 'media',
+            'image link', 'lien image',
+        ]):
             column_mapping['Image'] = col
+        
+        # Additional optional fields
+        # Inventory
+        elif 'Inventory' not in column_mapping and any(kw in col_lower for kw in [
+            'inventory', 'stock', 'quantity', 'quantité', 'qty',
+            'disponible', 'available', 'en stock',
+        ]) and 'total' not in col_lower and 'all' not in col_lower:
+            column_mapping['Inventory'] = col
+        
+        # Number of Offers
+        elif 'Offers' not in column_mapping and any(kw in col_lower for kw in [
+            'number of offers', 'nombre d\'offres', 'nb offres',
+            'offers', 'offres', 'sellers', 'vendeurs',
+        ]):
+            column_mapping['Offers'] = col
+        
+        # Product Link
+        elif 'Link' not in column_mapping and any(kw in col_lower for kw in [
+            'product link', 'lien produit', 'link', 'lien', 'url',
+            'product url', 'page produit',
+        ]) and 'image' not in col_lower:
+            column_mapping['Link'] = col
+    
+    logger.info(f"Auto-detected column mapping: {column_mapping} from columns: {columns}")
     return column_mapping
 
 
