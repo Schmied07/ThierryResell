@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 # Backend URL from environment
-BACKEND_URL = "https://catalog-column-issue.preview.emergentagent.com/api"
+BACKEND_URL = "https://catalog-mapper-1.preview.emergentagent.com/api"
 
 # Test authentication credentials
 TEST_EMAIL = "testuser@test.com"
