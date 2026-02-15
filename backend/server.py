@@ -1675,6 +1675,7 @@ async def compare_catalog_product(
     update_data = {
         'amazon_price_eur': amazon_price,
         'google_lowest_price_eur': google_lowest_price,
+        'google_suppliers_results': google_suppliers if google_suppliers else None,  # Store all Google suppliers
         'cheapest_source': cheapest_source,
         'cheapest_buy_price_eur': cheapest_buy_price,
         'amazon_fees_eur': amazon_fees,
