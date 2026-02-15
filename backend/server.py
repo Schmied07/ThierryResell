@@ -514,6 +514,295 @@ def calculate_opportunity_score(
         'details': details
     }
 
+
+def predict_price_profitability(price_trend: dict, amazon_price: float, supplier_price: float) -> dict:
+    """
+    Predict future profitability based on price trends using linear regression.
+    
+    Returns predictions for 30/60/90 days:
+    - predicted_price: Expected Amazon price
+    - predicted_profit_eur: Expected profit in EUR
+    - profit_change_percentage: Expected change in profit %
+    - confidence_level: "high" | "medium" | "low"
+    - recommendation: Action recommendation ("acheter_maintenant" | "attendre" | "risque")
+    - volatility_risk: Risk level based on price volatility
+    """
+    if not price_trend or not price_trend.get('avg_30d'):
+        return None
+    
+    try:
+        # Calculate trend slope (price change rate per day)
+        current_price = price_trend['current_price']
+        avg_30d = price_trend['avg_30d']
+        avg_60d = price_trend.get('avg_60d', avg_30d)
+        avg_90d = price_trend.get('avg_90d', avg_30d)
+        
+        # Simple linear regression on historical averages
+        # Calculate daily price change rate
+        if avg_60d and avg_90d:
+            # Use 90-day trend for better prediction
+            daily_change = (current_price - avg_90d) / 90
+        elif avg_60d:
+            daily_change = (current_price - avg_60d) / 60
+        else:
+            daily_change = (current_price - avg_30d) / 30
+        
+        # Predict prices for 30/60/90 days
+        price_30d = round(current_price + (daily_change * 30), 2)
+        price_60d = round(current_price + (daily_change * 60), 2)
+        price_90d = round(current_price + (daily_change * 90), 2)
+        
+        # Ensure prices don't go negative or unrealistically high
+        price_30d = max(current_price * 0.5, min(price_30d, current_price * 1.5))
+        price_60d = max(current_price * 0.5, min(price_60d, current_price * 1.8))
+        price_90d = max(current_price * 0.5, min(price_90d, current_price * 2.0))
+        
+        # Calculate predicted profits (Amazon price - supplier price - 15% fees)
+        AMAZON_FEE_RATE = 0.15
+        
+        def calc_profit(amazon_price_pred):
+            fees = amazon_price_pred * AMAZON_FEE_RATE
+            return round(amazon_price_pred - supplier_price - fees, 2)
+        
+        current_profit = calc_profit(current_price)
+        profit_30d = calc_profit(price_30d)
+        profit_60d = calc_profit(price_60d)
+        profit_90d = calc_profit(price_90d)
+        
+        # Calculate profit change percentages
+        profit_change_30d = round(((profit_30d - current_profit) / current_profit * 100) if current_profit != 0 else 0, 1)
+        profit_change_60d = round(((profit_60d - current_profit) / current_profit * 100) if current_profit != 0 else 0, 1)
+        profit_change_90d = round(((profit_90d - current_profit) / current_profit * 100) if current_profit != 0 else 0, 1)
+        
+        # Confidence level based on volatility and data points
+        volatility = price_trend.get('volatility', 50)
+        data_points = price_trend.get('data_points', 0)
+        
+        if volatility < 10 and data_points > 50:
+            confidence = "high"
+        elif volatility < 25 and data_points > 20:
+            confidence = "medium"
+        else:
+            confidence = "low"
+        
+        # Recommendation logic
+        trend = price_trend.get('trend', 'stable')
+        if profit_30d > current_profit * 1.1 and trend != "hausse":
+            recommendation = "acheter_maintenant"  # Buy now, profit expected to increase
+        elif profit_30d < current_profit * 0.9 or volatility > 30:
+            recommendation = "risque"  # Risky, profit decreasing or high volatility
+        else:
+            recommendation = "attendre"  # Wait and monitor
+        
+        # Volatility risk assessment
+        if volatility < 10:
+            volatility_risk = "faible"
+        elif volatility < 25:
+            volatility_risk = "moyen"
+        else:
+            volatility_risk = "eleve"
+        
+        return {
+            'current': {
+                'price': current_price,
+                'profit_eur': current_profit
+            },
+            'predictions': {
+                '30d': {
+                    'price': price_30d,
+                    'profit_eur': profit_30d,
+                    'profit_change_pct': profit_change_30d
+                },
+                '60d': {
+                    'price': price_60d,
+                    'profit_eur': profit_60d,
+                    'profit_change_pct': profit_change_60d
+                },
+                '90d': {
+                    'price': price_90d,
+                    'profit_eur': profit_90d,
+                    'profit_change_pct': profit_change_90d
+                }
+            },
+            'confidence_level': confidence,
+            'recommendation': recommendation,
+            'volatility_risk': volatility_risk,
+            'trend_direction': trend
+        }
+    
+    except Exception as e:
+        logger.error(f"Error predicting profitability: {e}")
+        return None
+
+
+async def analyze_multi_market_arbitrage(gtin: str, supplier_price_eur: float, keepa_api_key: Optional[str]) -> dict:
+    """
+    Analyze arbitrage opportunities across multiple Amazon marketplaces.
+    
+    Markets analyzed: FR, UK, DE, ES
+    
+    Returns:
+    - markets: Dict with price, fees, margin for each market
+    - best_buy_market: Market code with lowest price
+    - best_sell_market: Market code with highest margin
+    - arbitrage_opportunity_eur: Max profit from best buy/sell combination
+    - exchange_rates: Currency conversion rates used
+    """
+    
+    # Market configurations
+    MARKETS = {
+        'FR': {'domain': 1, 'currency': 'EUR', 'name': 'France', 'flag': '🇫🇷', 'exchange_rate': 1.0},
+        'UK': {'domain': 2, 'currency': 'GBP', 'name': 'Royaume-Uni', 'flag': '🇬🇧', 'exchange_rate': 1.17},  # GBP to EUR
+        'DE': {'domain': 3, 'currency': 'EUR', 'name': 'Allemagne', 'flag': '🇩🇪', 'exchange_rate': 1.0},
+        'ES': {'domain': 4, 'currency': 'EUR', 'name': 'Espagne', 'flag': '🇪🇸', 'exchange_rate': 1.0},
+    }
+    
+    AMAZON_FEE_RATE = 0.15
+    
+    markets_data = {}
+    
+    # If no API key, generate mock data
+    if not keepa_api_key:
+        logger.info("No Keepa API key - generating mock multi-market data")
+        base_price = supplier_price_eur * random.uniform(1.5, 2.5)
+        
+        for market_code, market_info in MARKETS.items():
+            # Simulate different prices per market
+            variation = random.uniform(0.85, 1.15)
+            price_local = round(base_price * variation, 2)
+            price_eur = round(price_local * market_info['exchange_rate'], 2)
+            fees_eur = round(price_eur * AMAZON_FEE_RATE, 2)
+            margin_eur = round(price_eur - supplier_price_eur - fees_eur, 2)
+            margin_pct = round((margin_eur / price_eur * 100) if price_eur > 0 else 0, 1)
+            
+            markets_data[market_code] = {
+                'country': market_info['name'],
+                'flag': market_info['flag'],
+                'currency': market_info['currency'],
+                'price_local': price_local,
+                'price_eur': price_eur,
+                'fees_eur': fees_eur,
+                'margin_eur': margin_eur,
+                'margin_percentage': margin_pct,
+                'exchange_rate': market_info['exchange_rate'],
+                'available': True
+            }
+    
+    else:
+        # Real Keepa API call for multiple domains
+        try:
+            async with httpx.AsyncClient() as client:
+                for market_code, market_info in MARKETS.items():
+                    try:
+                        response = await client.get(
+                            "https://api.keepa.com/product",
+                            params={
+                                'key': keepa_api_key,
+                                'domain': market_info['domain'],
+                                'code': gtin
+                            },
+                            timeout=10
+                        )
+                        
+                        if response.status_code == 200:
+                            data = response.json()
+                            products = data.get('products', [])
+                            
+                            if products:
+                                product = products[0]
+                                # Try to get current price
+                                price_local = None
+                                
+                                # Try stats.current first
+                                if 'stats' in product and product['stats'].get('current'):
+                                    price_cents = product['stats']['current'][0]
+                                    if price_cents and price_cents > 0:
+                                        price_local = price_cents / 100.0
+                                
+                                # Try buyBoxPrice
+                                if not price_local and 'stats' in product and product['stats'].get('buyBoxPrice'):
+                                    price_cents = product['stats']['buyBoxPrice']
+                                    if price_cents and price_cents > 0:
+                                        price_local = price_cents / 100.0
+                                
+                                if price_local:
+                                    price_eur = round(price_local * market_info['exchange_rate'], 2)
+                                    fees_eur = round(price_eur * AMAZON_FEE_RATE, 2)
+                                    margin_eur = round(price_eur - supplier_price_eur - fees_eur, 2)
+                                    margin_pct = round((margin_eur / price_eur * 100) if price_eur > 0 else 0, 1)
+                                    
+                                    markets_data[market_code] = {
+                                        'country': market_info['name'],
+                                        'flag': market_info['flag'],
+                                        'currency': market_info['currency'],
+                                        'price_local': price_local,
+                                        'price_eur': price_eur,
+                                        'fees_eur': fees_eur,
+                                        'margin_eur': margin_eur,
+                                        'margin_percentage': margin_pct,
+                                        'exchange_rate': market_info['exchange_rate'],
+                                        'available': True
+                                    }
+                                else:
+                                    markets_data[market_code] = {
+                                        'country': market_info['name'],
+                                        'flag': market_info['flag'],
+                                        'available': False,
+                                        'reason': 'Prix non disponible'
+                                    }
+                        
+                    except Exception as e:
+                        logger.error(f"Error fetching Keepa data for market {market_code}: {e}")
+                        markets_data[market_code] = {
+                            'country': market_info['name'],
+                            'flag': market_info['flag'],
+                            'available': False,
+                            'reason': 'Erreur API'
+                        }
+        
+        except Exception as e:
+            logger.error(f"Error in multi-market analysis: {e}")
+            return None
+    
+    # Calculate best opportunities
+    available_markets = {k: v for k, v in markets_data.items() if v.get('available', False)}
+    
+    if not available_markets:
+        return {
+            'markets': markets_data,
+            'best_buy_market': None,
+            'best_sell_market': None,
+            'arbitrage_opportunity_eur': 0,
+            'analysis_available': False
+        }
+    
+    # Best buy market = lowest price (to source from)
+    best_buy_market = min(available_markets.items(), key=lambda x: x[1]['price_eur'])
+    # Best sell market = highest margin (to sell to)
+    best_sell_market = max(available_markets.items(), key=lambda x: x[1]['margin_eur'])
+    
+    # Arbitrage opportunity = difference between best sell and best buy
+    arbitrage_profit = round(best_sell_market[1]['margin_eur'] - best_buy_market[1]['margin_eur'], 2)
+    
+    return {
+        'markets': markets_data,
+        'best_buy_market': {
+            'code': best_buy_market[0],
+            'country': best_buy_market[1]['country'],
+            'flag': best_buy_market[1]['flag'],
+            'price_eur': best_buy_market[1]['price_eur']
+        },
+        'best_sell_market': {
+            'code': best_sell_market[0],
+            'country': best_sell_market[1]['country'],
+            'flag': best_sell_market[1]['flag'],
+            'margin_eur': best_sell_market[1]['margin_eur']
+        },
+        'arbitrage_opportunity_eur': arbitrage_profit,
+        'analysis_available': True
+    }
+
+
 # ==================== CATALOG MODELS ====================
 
 class CatalogProduct(BaseModel):
