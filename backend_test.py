@@ -295,8 +295,8 @@ class BackendTester:
         
         try:
             # Upload the catalog file
-            with open('/app/catalog_sample.xlsx', 'rb') as file:
-                files = {'file': ('catalog_sample.xlsx', file, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
+            with open('/app/test_catalog_simple.xlsx', 'rb') as file:
+                files = {'file': ('test_catalog_simple.xlsx', file, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
                 
                 url = f"{self.base_url}/catalog/import"
                 headers = {"Authorization": f"Bearer {self.token}"}
