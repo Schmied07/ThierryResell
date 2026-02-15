@@ -839,6 +839,75 @@ const ProductComparisonDetail = ({ product, compareResult }) => {
         </div>
       </div>
 
+      {/* Google Suppliers Detail Section */}
+      {product.google_suppliers_results && product.google_suppliers_results.length > 0 && (
+        <div className="bg-gradient-to-br from-purple-500/5 to-indigo-500/5 rounded-lg p-5 border border-purple-500/20">
+          <div className="flex items-center gap-2 mb-4">
+            <Globe className="w-5 h-5 text-purple-400" />
+            <h4 className="text-white font-semibold">Fournisseurs trouvés par Google</h4>
+            <Badge className="bg-purple-500/20 text-purple-300 text-xs">
+              {product.google_suppliers_results.length} résultat{product.google_suppliers_results.length > 1 ? 's' : ''}
+            </Badge>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {product.google_suppliers_results.map((supplier, idx) => (
+              <div 
+                key={idx}
+                className={`relative rounded-lg p-4 border transition-all hover:shadow-lg ${
+                  supplier.is_lowest 
+                    ? 'bg-purple-500/10 border-purple-500/40 ring-2 ring-purple-500/30' 
+                    : 'bg-zinc-800/50 border-zinc-700 hover:border-purple-500/30'
+                }`}
+              >
+                {supplier.is_lowest && (
+                  <div className="absolute -top-2 -right-2">
+                    <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[10px] shadow-lg animate-pulse">
+                      ⭐ PLUS BAS
+                    </Badge>
+                  </div>
+                )}
+                
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Store className="w-4 h-4 text-purple-400" />
+                    <h5 className="text-white font-semibold text-sm truncate max-w-[150px]" title={supplier.supplier_name}>
+                      {supplier.supplier_name}
+                    </h5>
+                  </div>
+                  {supplier.is_lowest && (
+                    <Tag className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                  )}
+                </div>
+                
+                <div className="mb-3">
+                  <p className={`text-2xl font-bold ${supplier.is_lowest ? 'text-purple-300' : 'text-white'}`}>
+                    {supplier.price.toFixed(2)}€
+                  </p>
+                </div>
+                
+                <a
+                  href={supplier.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 rounded-md text-purple-300 hover:text-purple-200 text-sm font-medium transition-colors"
+                >
+                  <span>Voir le produit</span>
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-purple-500/20">
+            <p className="text-zinc-400 text-xs flex items-center gap-2">
+              <Info className="w-4 h-4" />
+              Prix le plus bas mis en avant automatiquement. Cliquez sur "Voir le produit" pour accéder directement chez le fournisseur.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Comparison Summary */}
       {amazonPrice && (
         <div className="bg-zinc-800/30 rounded-lg p-4 border border-zinc-700">
