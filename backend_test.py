@@ -64,7 +64,7 @@ class BackendTester:
                 self.auth_token = data.get("token")
                 self.log(f"User registered successfully: {data.get('user', {}).get('email')}")
                 return True
-            elif response.status_code == 400 and "already exists" in response.text.lower():
+            elif response.status_code == 400 and ("already exists" in response.text.lower() or "already registered" in response.text.lower()):
                 # User already exists, try to login
                 login_data = {
                     "email": TEST_EMAIL,
