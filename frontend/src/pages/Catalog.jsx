@@ -45,6 +45,8 @@ const Catalog = () => {
   const [previewData, setPreviewData] = useState(null); // columns, sample_data, suggested_mapping
   const [columnMapping, setColumnMapping] = useState({});
   const [previewing, setPreviewing] = useState(false);
+  const [selectedFileColumn, setSelectedFileColumn] = useState(null); // For visual mapping
+  const [selectedAppField, setSelectedAppField] = useState(null); // For visual mapping
   
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
