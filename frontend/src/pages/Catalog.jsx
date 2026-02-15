@@ -277,6 +277,65 @@ const Catalog = () => {
     return <Badge className="bg-purple-500/20 text-purple-400 border border-purple-500/30 text-xs"><Globe className="w-3 h-3 mr-1" />Google</Badge>;
   };
 
+  const getTrendIcon = (trend) => {
+    if (!trend) return <span className="text-zinc-600 text-sm">-</span>;
+    
+    if (trend === "hausse") {
+      return (
+        <div className="flex items-center justify-center gap-1 text-red-400">
+          <TrendingUp className="w-4 h-4" />
+          <span className="text-xs font-medium">Hausse</span>
+        </div>
+      );
+    } else if (trend === "baisse") {
+      return (
+        <div className="flex items-center justify-center gap-1 text-green-400">
+          <TrendingDown className="w-4 h-4" />
+          <span className="text-xs font-medium">Baisse</span>
+        </div>
+      );
+    } else {
+      return (
+        <div className="flex items-center justify-center gap-1 text-blue-400">
+          <Minus className="w-4 h-4" />
+          <span className="text-xs font-medium">Stable</span>
+        </div>
+      );
+    }
+  };
+
+  const getOpportunityScoreBadge = (score, level) => {
+    if (score === null || score === undefined) {
+      return <Badge variant="secondary" className="text-xs">-</Badge>;
+    }
+    
+    let bgColor, textColor, borderColor;
+    if (level === "Excellent") {
+      bgColor = "bg-purple-500/20";
+      textColor = "text-purple-300";
+      borderColor = "border-purple-500/30";
+    } else if (level === "Bon") {
+      bgColor = "bg-green-500/20";
+      textColor = "text-green-400";
+      borderColor = "border-green-500/30";
+    } else if (level === "Moyen") {
+      bgColor = "bg-yellow-500/20";
+      textColor = "text-yellow-400";
+      borderColor = "border-yellow-500/30";
+    } else {
+      bgColor = "bg-gray-500/20";
+      textColor = "text-gray-400";
+      borderColor = "border-gray-500/30";
+    }
+    
+    return (
+      <Badge className={`${bgColor} ${textColor} border ${borderColor} text-xs font-bold flex items-center gap-1`}>
+        <Star className="w-3 h-3" />
+        {score}/100
+      </Badge>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 p-4 md:p-8">
       <div className="max-w-[1600px] mx-auto">
