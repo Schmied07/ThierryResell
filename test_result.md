@@ -250,6 +250,8 @@ test_plan:
 agent_communication:
   - agent: "main"
     message: "Implemented catalog comparison feature with: 1) Mock data fallback when no API keys, 2) Amazon fees (15% TTC), 3) Three-way comparison (supplier vs Google vs Amazon), 4) Cheapest source detection. Please test the backend endpoints: POST /api/catalog/compare/{product_id}, GET /api/catalog/stats, GET /api/catalog/opportunities. For testing, first register a user, then import a catalog or create test data, then run compare. The compare endpoint uses mock data when no Keepa/Google API keys are configured."
+  - agent: "main"
+    message: "NEW FEATURE IMPLEMENTED: Google Search now captures ALL suppliers with prices and product links (not just lowest price). Backend: Modified Google Custom Search to store google_suppliers_results array with supplier_name, url, price, is_lowest flag. Frontend: Added 'Fournisseurs trouvés par Google' section in product detail view showing all suppliers as cards with clickable links and animated badge for lowest price. Please test: 1) POST /api/catalog/compare/{product_id} should return google_suppliers_results array, 2) Frontend catalog page should display all Google suppliers when expanding a product detail."
 
 user_problem_statement: "Resell Corner - A product price comparison and reselling platform. Users can register/login, search products by text or image, manage suppliers, set price alerts, save favorites, and configure API keys (Google, Keepa). The app uses mock data when API keys are not configured."
 
