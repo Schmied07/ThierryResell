@@ -102,6 +102,64 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
+user_problem_statement: "L'application n'arrive pas à analyser les colonnes des fichiers catalogue - le fichier Excel Qogita a des lignes de métadonnées avant les en-têtes, et la détection de colonnes échoue"
+
+backend:
+  - task: "Catalog Excel header row detection"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "Fixed read_excel_dataframe to use scoring algorithm. The old code accepted the first row with ANY named column as header, even title rows like 'Qogita Catalog'. Now uses scoring with keyword matching, named ratio, and core field detection. Correctly finds header at row 4 for Qogita catalog files."
+  
+  - task: "Column auto-detect mapping"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "Improved auto_detect_column_mapping to handle many more column name variations from different catalog providers. Now supports currency symbols, French/English naming, Qogita-specific columns (inventory, offers, links). All 5 required fields detected for Qogita file."
+
+frontend:
+  - task: "Catalog upload and preview UI"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Catalog.jsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "No frontend changes made - only backend fixes"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Catalog Excel header row detection"
+    - "Column auto-detect mapping"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "main"
+      message: "Fixed catalog file column detection. The read_excel_dataframe function now uses a scoring algorithm instead of simple text check. Also improved auto_detect_column_mapping with many more keywords. Test with the Qogita catalog file that has 4 metadata rows before actual headers. Backend endpoint POST /api/catalog/preview should return correct 12 columns and proper mapping."
+
 user_problem_statement: "Analyser l'application et ajouter des fonctionnalités qui peuvent être utiles en combinant les 2 APIs (Keepa, Google Search) pour optimiser les marges."
 
 backend:
