@@ -1208,6 +1208,12 @@ const ProductComparisonDetail = ({ product, compareResult }) => {
             <Badge className="bg-purple-500/20 text-purple-300 text-xs">
               {product.google_suppliers_results.length} résultat{product.google_suppliers_results.length > 1 ? 's' : ''}
             </Badge>
+            {product.image_url && (
+              <Badge className="bg-green-500/20 text-green-300 text-xs border border-green-500/30">
+                <Image className="w-3 h-3 mr-1" />
+                Recherche image active
+              </Badge>
+            )}
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1217,6 +1223,8 @@ const ProductComparisonDetail = ({ product, compareResult }) => {
                 className={`relative rounded-lg p-4 border transition-all hover:shadow-lg ${
                   supplier.is_lowest 
                     ? 'bg-purple-500/10 border-purple-500/40 ring-2 ring-purple-500/30' 
+                    : supplier.is_amazon
+                    ? 'bg-amber-500/5 border-amber-500/30 hover:border-amber-500/50'
                     : 'bg-zinc-800/50 border-zinc-700 hover:border-purple-500/30'
                 }`}
               >
@@ -1230,10 +1238,19 @@ const ProductComparisonDetail = ({ product, compareResult }) => {
                 
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <Store className="w-4 h-4 text-purple-400" />
+                    {supplier.is_amazon ? (
+                      <ShoppingCart className="w-4 h-4 text-amber-400" />
+                    ) : (
+                      <Store className="w-4 h-4 text-purple-400" />
+                    )}
                     <h5 className="text-white font-semibold text-sm truncate max-w-[150px]" title={supplier.supplier_name}>
                       {supplier.supplier_name}
                     </h5>
+                    {supplier.is_amazon && (
+                      <Badge className="bg-amber-500/20 text-amber-300 text-[10px] px-1.5 py-0 border border-amber-500/30">
+                        Amazon
+                      </Badge>
+                    )}
                   </div>
                   {supplier.is_lowest && (
                     <Tag className="w-4 h-4 text-purple-400 flex-shrink-0" />
@@ -1241,7 +1258,7 @@ const ProductComparisonDetail = ({ product, compareResult }) => {
                 </div>
                 
                 <div className="mb-3">
-                  <p className={`text-2xl font-bold ${supplier.is_lowest ? 'text-purple-300' : 'text-white'}`}>
+                  <p className={`text-2xl font-bold ${supplier.is_lowest ? 'text-purple-300' : supplier.is_amazon ? 'text-amber-300' : 'text-white'}`}>
                     {supplier.price.toFixed(2)}€
                   </p>
                 </div>
@@ -1250,7 +1267,11 @@ const ProductComparisonDetail = ({ product, compareResult }) => {
                   href={supplier.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 rounded-md text-purple-300 hover:text-purple-200 text-sm font-medium transition-colors"
+                  className={`flex items-center justify-center gap-2 w-full px-3 py-2 ${
+                    supplier.is_amazon 
+                      ? 'bg-amber-500/20 hover:bg-amber-500/30 border-amber-500/40 text-amber-300 hover:text-amber-200'
+                      : 'bg-purple-500/20 hover:bg-purple-500/30 border-purple-500/40 text-purple-300 hover:text-purple-200'
+                  } border rounded-md text-sm font-medium transition-colors`}
                 >
                   <span>Voir le produit</span>
                   <ExternalLink className="w-4 h-4" />
@@ -1262,7 +1283,7 @@ const ProductComparisonDetail = ({ product, compareResult }) => {
           <div className="mt-4 pt-4 border-t border-purple-500/20">
             <p className="text-zinc-400 text-xs flex items-center gap-2">
               <Info className="w-4 h-4" />
-              Prix le plus bas mis en avant automatiquement. Cliquez sur "Voir le produit" pour accéder directement chez le fournisseur.
+              Prix le plus bas mis en avant automatiquement. Les résultats Amazon sont identifiés avec un badge 🛒 spécifique.
             </p>
           </div>
         </div>
