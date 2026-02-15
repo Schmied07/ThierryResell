@@ -239,6 +239,30 @@ frontend:
         agent: "main"
         comment: "NEW FEATURE: Added '⭐ Score d'Opportunité' section in expandable product detail. Features: Circular gauge SVG showing score/100 with color-coded arc (purple/green/yellow/gray), Level badge below gauge, Detailed breakdown of 5 scoring factors with icons (Marge 30pts, Tendance 25pts, Concurrence 20pts, Volatilité 15pts, Prix vs historique 10pts). Purple gradient background with border."
 
+  - task: "Profitability Predictions Display - 30/60/90 day forecasts"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Catalog.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "NEW FEATURE: Added '🔮 Prévisions de Profitabilité' section in product detail view. Displays: Recommendation badge (Acheter maintenant ✅ / Attendre ⏳ / Risqué ⚠️), Confidence level (Haute/Moyenne/Faible), 3 prediction cards for 30/60/90 days showing predicted price, profit, and % change with color coding. Risk assessment showing volatility risk level and trend direction. Emerald gradient background with border. Located after Opportunity Score section."
+
+  - task: "Multi-Market Arbitrage Display - FR/UK/DE/ES comparison table"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/Catalog.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "NEW FEATURE: Added '🌍 Arbitrage Multi-Marchés' section in product detail view. Features: Best sell market card (💰 highest margin) with country flag, Best buy market card (🛒 lowest price) with country flag, Arbitrage opportunity badge showing extra profit potential, Markets comparison table with all 4 markets (🇫🇷🇬🇧🇩🇪🇪🇸) showing local price, EUR conversion, margin, and availability status. Indigo/purple gradient background with border. Located after Profitability Predictions section."
+
 metadata:
   created_by: "main_agent"
   version: "2.0"
