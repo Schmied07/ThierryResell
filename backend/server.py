@@ -1540,7 +1540,6 @@ def read_excel_dataframe(contents: bytes) -> pd.DataFrame:
     for header_row in range(20):
         try:
             temp_df = pd.read_excel(io.BytesIO(contents), header=header_row)
-            col_str = ' '.join(str(col) for col in temp_df.columns)
             
             # Check if columns look like header names (not numbers/dates)
             has_text_cols = any(isinstance(col, str) and not col.startswith('Unnamed') for col in temp_df.columns)
