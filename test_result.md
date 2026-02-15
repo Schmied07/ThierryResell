@@ -476,6 +476,18 @@ backend:
         - agent: "main"
         - comment: "GET /api/catalog/opportunities - Returns best reselling opportunities sorted by margin DESC, filtered by min_margin_percentage"
 
+  - task: "Compare All Catalog Products endpoint"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/catalog/compare-all - Fetches all product IDs for the current user and runs price comparison on all of them. Returns total, success, failed counts with results and errors. Timeout extended for large catalogs."
+
   - task: "Catalog Export"
     implemented: true
     working: "NA"
