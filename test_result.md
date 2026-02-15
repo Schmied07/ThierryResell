@@ -265,24 +265,23 @@ frontend:
 
 metadata:
   created_by: "main_agent"
-  version: "2.0"
+  version: "3.0"
   test_sequence: 0
   run_ui: false
 
 test_plan:
   current_focus:
-    - "Price Trend Analysis - Keepa historical data parsing and trend detection"
-    - "Opportunity Score Calculation - Multi-factor scoring algorithm"
-    - "Catalog table - Trend and Opportunity Score columns"
-    - "Product detail view - Price Trend Analysis section"
-    - "Product detail view - Opportunity Score section"
+    - "Profitability Predictions - Price forecasting algorithm"
+    - "Multi-Market Arbitrage - Amazon FR/UK/DE/ES comparison"
+    - "Profitability Predictions Display - 30/60/90 day forecasts"
+    - "Multi-Market Arbitrage Display - FR/UK/DE/ES comparison table"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
   - agent: "main"
-    message: "NOUVELLES FONCTIONNALITÉS IMPLÉMENTÉES pour optimiser les marges en combinant Keepa + Google APIs: 1) ANALYSE DE TENDANCES KEEPA: Parse l'historique complet des prix, calcule moyennes 30/60/90j, min/max, volatilité, détecte tendance (hausse/baisse/stable), identifie moments favorables. 2) SCORE D'OPPORTUNITÉ (0-100): Combine marge (30%), tendance prix (25%), concurrence Google (20%), volatilité (15%), position prix (10%). Niveaux: Excellent/Bon/Moyen/Faible. Backend: nouvelles fonctions analyze_keepa_price_trends() et calculate_opportunity_score(), intégrées dans compare_catalog_product, nouveaux filtres sur /catalog/products, tri intelligent sur /catalog/opportunities. Frontend: 2 nouvelles colonnes (Tendance, Score), 2 nouvelles sections détaillées avec gauges/graphiques/breakdowns. Prêt pour test backend puis frontend."
+    message: "NOUVELLES FONCTIONNALITÉS AVANCÉES IMPLÉMENTÉES: 1) 🔮 PRÉVISIONS DE PROFITABILITÉ: Régression linéaire sur historique Keepa pour prédire prix et profits Amazon sur 30/60/90 jours. Calcule changement de profit en %, niveau de confiance (high/medium/low), recommandation d'action (acheter maintenant/attendre/risque), évaluation risque volatilité. Backend: predict_price_profitability() intégré dans compare_catalog_product. Frontend: section avec badges de recommandation, 3 cartes de prévision, évaluation du risque. 2) 🌍 ARBITRAGE MULTI-MARCHÉS: Analyse prix Amazon sur 4 marchés européens (FR/UK/DE/ES). Appels Keepa API par domaine, conversion devises (GBP→EUR), calcul marges par marché. Backend: analyze_multi_market_arbitrage() avec best_buy_market, best_sell_market, arbitrage_opportunity_eur. Frontend: section avec cartes best sell/buy, badge opportunité arbitrage, tableau comparatif 4 marchés avec drapeaux. Données MOCK si pas de clé API. Prêt pour test backend puis frontend."
 
 user_problem_statement: "Quand on ajoute un catalogue fournisseur, obtenir le prix Amazon via Keepa API et TOUS les prix des fournisseurs via Google API avec leurs liens. Le prix le plus bas Google doit être mis en avant."
 
