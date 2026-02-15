@@ -93,6 +93,9 @@ const Catalog = () => {
       if (minMargin) params.min_margin = parseFloat(minMargin);
       if (comparedOnly) params.compared_only = true;
       if (searchQuery) params.search = searchQuery;
+      if (minOpportunityScore) params.min_opportunity_score = parseInt(minOpportunityScore);
+      if (opportunityLevel) params.opportunity_level = opportunityLevel;
+      if (trendFilter) params.trend = trendFilter;
 
       const response = await api.get("/catalog/products", { params });
       setProducts(response.data.products);
