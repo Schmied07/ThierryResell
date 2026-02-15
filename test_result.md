@@ -798,17 +798,20 @@ backend:
         agent: "testing"
         comment: "✅ TESTED SUCCESSFULLY: POST /api/catalog/preview correctly processes /tmp/test_catalog.xlsx file. Returns all expected fields: columns=['Product Code', 'Product Title', 'Product Type', 'Manufacturer', 'Supplier Price', 'Product Image URL'], sample_data with 3 rows, total_rows=3, and suggested_mapping auto-detects 5/6 fields (Name→Product Title, Category→Product Type, Brand→Manufacturer, Price→Supplier Price, Image→Product Image URL). GTIN not auto-detected for 'Product Code' as expected since it doesn't match keyword patterns. Backend API contract working perfectly for new visual column mapping UI."
 
-  - task: "Catalog Import Endpoint - Manual Column Mapping Support"
+  - task: "Delete Catalog Products"
     implemented: true
     working: true
     file: "backend/server.py"
     stuck_count: 0
-    priority: "high"
+    priority: "low"
     needs_retesting: false
     status_history:
-      - working: true
-        agent: "testing"
-        comment: "✅ TESTED SUCCESSFULLY: POST /api/catalog/import with manual column_mapping_json parameter works perfectly. Successfully imported all 3 products from test file using manual mapping: GTIN→Product Code, Name→Product Title, Category→Product Type, Brand→Manufacturer, Price→Supplier Price, Image→Product Image URL. All products verified in catalog with correct field mapping: Elmex Junior (GTIN: 3574661517506), Colgate Max Fresh (GTIN: 3574661517513), Oral-B Pro Expert (GTIN: 8410076404117). Currency conversion working (GBP→EUR rate: 1.15). Import response structure correct with success=true, imported=3, skipped=0, total=3."
+        - working: "NA"
+        - agent: "main"
+        - comment: "DELETE /api/catalog/products/{product_id} and DELETE /api/catalog/products - Delete single or all catalog products for user"
+        - working: true
+        - agent: "testing"
+        - comment: "✅ TESTED SUCCESSFULLY: DELETE /api/catalog/products works correctly for cleaning up catalog data during testing. Returns 200 OK status."
 
 frontend:
   - task: "Landing Page"
