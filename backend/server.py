@@ -1525,7 +1525,9 @@ async def compare_catalog_product(
         except Exception as e:
             logger.warning(f"Keepa API error for {product['gtin']}: {e}")
     
-    # ==================== GOOGLE CUSTOM SEARCH (lowest price online) ====================
+    # ==================== GOOGLE CUSTOM SEARCH (all suppliers with prices) ====================
+    google_suppliers = []  # List to store all Google suppliers with details
+    
     if google_key and google_cx:
         try:
             search_query = f"{product['brand']} {product['name']} prix"
@@ -1547,12 +1549,18 @@ async def compare_catalog_product(
                     data = response.json()
                     items = data.get('items', [])
                     logger.info(f"Google returned {len(items)} items")
-                    found_prices = []
                     
                     for item in items:
-                        # Try to extract price from snippet
+                        # Extract basic info
+                        item_url = item.get('link', '')
                         snippet = item.get('snippet', '')
                         title = item.get('title', '')
+                        
+                        # Extract supplier name from URL
+                        supplier_name = extract_supplier_name_from_url(item_url)
+                        
+                        # Try to find price for this item
+                        item_prices = []
                         
                         # Check pagemap for structured pricing data
                         pagemap = item.get('pagemap', {})
@@ -1562,8 +1570,8 @@ async def compare_catalog_product(
                             try:
                                 price = float(price_str.replace(',', '.'))
                                 if 0.01 < price < 100000:
-                                    found_prices.append(price)
-                                    logger.info(f"Google: found price {price} in offer data")
+                                    item_prices.append(price)
+                                    logger.info(f"Google: found price {price} in offer data for {supplier_name}")
                             except (ValueError, AttributeError):
                                 pass
                         
@@ -1574,25 +1582,43 @@ async def compare_catalog_product(
                             try:
                                 price = float(price_str.replace(',', '.'))
                                 if 0.01 < price < 100000:
-                                    found_prices.append(price)
-                                    logger.info(f"Google: found price {price} in product data")
+                                    item_prices.append(price)
+                                    logger.info(f"Google: found price {price} in product data for {supplier_name}")
                             except (ValueError, AttributeError):
                                 pass
                         
                         # Extract from snippet text
                         snippet_price = extract_price_from_text(snippet)
                         if snippet_price:
-                            found_prices.append(snippet_price)
-                            logger.info(f"Google: found price {snippet_price} in snippet")
+                            item_prices.append(snippet_price)
+                            logger.info(f"Google: found price {snippet_price} in snippet for {supplier_name}")
                         
+                        # Extract from title
                         title_price = extract_price_from_text(title)
                         if title_price:
-                            found_prices.append(title_price)
-                            logger.info(f"Google: found price {title_price} in title")
+                            item_prices.append(title_price)
+                            logger.info(f"Google: found price {title_price} in title for {supplier_name}")
+                        
+                        # If we found at least one price for this item, add it to results
+                        if item_prices:
+                            item_price = min(item_prices)  # Take lowest price for this supplier
+                            google_suppliers.append({
+                                'supplier_name': supplier_name,
+                                'url': item_url,
+                                'price': round(item_price, 2),
+                                'is_lowest': False  # Will be set later
+                            })
                     
-                    if found_prices:
-                        google_lowest_price = min(found_prices)
-                        logger.info(f"Google lowest price for {product['name']}: €{google_lowest_price} (from {len(found_prices)} prices found)")
+                    # Mark the lowest price supplier
+                    if google_suppliers:
+                        lowest_price = min(s['price'] for s in google_suppliers)
+                        google_lowest_price = lowest_price
+                        for supplier in google_suppliers:
+                            if supplier['price'] == lowest_price:
+                                supplier['is_lowest'] = True
+                                break  # Only mark the first one as lowest
+                        
+                        logger.info(f"Google found {len(google_suppliers)} suppliers for {product['name']}, lowest price: €{google_lowest_price}")
                     else:
                         logger.info(f"Google: no prices found in search results for {product['name']}")
                 else:
