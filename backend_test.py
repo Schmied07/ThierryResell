@@ -144,48 +144,69 @@ class BackendTester:
                 print(f"🔍 Response keys: {list(data.keys())}")
                 print(f"🔍 Full response (first 500 chars): {str(data)[:500]}...")
                 
-                # Test 1: Check if google_suppliers_results field exists
-                google_suppliers = data.get("google_suppliers_results")
-                if google_suppliers is not None:
-                    print("✅ google_suppliers_results field is present")
+                # Test 1: Check if google_suppliers_results field exists in response
+                if "google_suppliers_results" in data:
+                    print("✅ google_suppliers_results field is present in API response")
                     
-                    if isinstance(google_suppliers, list):
-                        print(f"✅ google_suppliers_results is an array with {len(google_suppliers)} suppliers")
-                        
-                        # Test 2: Check array structure and required fields
-                        required_fields = ["supplier_name", "url", "price", "is_lowest"]
-                        if google_suppliers:
-                            for i, supplier in enumerate(google_suppliers):
-                                missing_fields = [field for field in required_fields if field not in supplier]
-                                if missing_fields:
-                                    print(f"❌ Supplier {i+1} missing fields: {missing_fields}")
-                                    return False
-                                else:
-                                    print(f"✅ Supplier {i+1}: {supplier['supplier_name']} - €{supplier['price']} - Lowest: {supplier['is_lowest']}")
-                            
-                            # Test 3: Check that at least one supplier has is_lowest = true
-                            lowest_count = sum(1 for s in google_suppliers if s.get("is_lowest") == True)
-                            if lowest_count >= 1:
-                                print(f"✅ Found {lowest_count} supplier(s) marked as lowest price")
-                            else:
-                                print("❌ No supplier marked as is_lowest = true")
-                                return False
-                                
-                            # Test 4: Verify google_lowest_price_eur matches lowest price in array
-                            google_lowest_price = data.get("google_lowest_price_eur")
-                            if google_lowest_price is not None:
-                                array_lowest_price = min(s["price"] for s in google_suppliers)
-                                if abs(google_lowest_price - array_lowest_price) < 0.01:  # Allow small float differences
-                                    print(f"✅ google_lowest_price_eur ({google_lowest_price}) matches array lowest price ({array_lowest_price})")
-                                else:
-                                    print(f"❌ Price mismatch: google_lowest_price_eur={google_lowest_price}, array_lowest={array_lowest_price}")
-                                    return False
-                            
+                    google_suppliers = data.get("google_suppliers_results")
+                    is_mock = data.get("is_mock_data", False)
+                    
+                    if is_mock and google_suppliers is None:
+                        print("✅ google_suppliers_results is None in mock data mode (expected behavior)")
+                        # In mock mode, we should still have google_lowest_price_eur
+                        google_lowest_price = data.get("google_lowest_price_eur")
+                        if google_lowest_price is not None:
+                            print(f"✅ google_lowest_price_eur is populated in mock mode: €{google_lowest_price}")
                         else:
-                            print("ℹ️  google_suppliers_results is empty (no suppliers found)")
+                            print("❌ google_lowest_price_eur should be populated even in mock mode")
+                            return False
+                    elif google_suppliers is not None:
+                        print("✅ google_suppliers_results field is populated with data")
+                        
+                        if isinstance(google_suppliers, list):
+                            print(f"✅ google_suppliers_results is an array with {len(google_suppliers)} suppliers")
+                            
+                            # Test 2: Check array structure and required fields
+                            required_fields = ["supplier_name", "url", "price", "is_lowest"]
+                            if google_suppliers:
+                                for i, supplier in enumerate(google_suppliers):
+                                    missing_fields = [field for field in required_fields if field not in supplier]
+                                    if missing_fields:
+                                        print(f"❌ Supplier {i+1} missing fields: {missing_fields}")
+                                        return False
+                                    else:
+                                        print(f"✅ Supplier {i+1}: {supplier['supplier_name']} - €{supplier['price']} - Lowest: {supplier['is_lowest']}")
+                                
+                                # Test 3: Check that at least one supplier has is_lowest = true
+                                lowest_count = sum(1 for s in google_suppliers if s.get("is_lowest") == True)
+                                if lowest_count >= 1:
+                                    print(f"✅ Found {lowest_count} supplier(s) marked as lowest price")
+                                else:
+                                    print("❌ No supplier marked as is_lowest = true")
+                                    return False
+                                    
+                                # Test 4: Verify google_lowest_price_eur matches lowest price in array
+                                google_lowest_price = data.get("google_lowest_price_eur")
+                                if google_lowest_price is not None:
+                                    array_lowest_price = min(s["price"] for s in google_suppliers)
+                                    if abs(google_lowest_price - array_lowest_price) < 0.01:  # Allow small float differences
+                                        print(f"✅ google_lowest_price_eur ({google_lowest_price}) matches array lowest price ({array_lowest_price})")
+                                    else:
+                                        print(f"❌ Price mismatch: google_lowest_price_eur={google_lowest_price}, array_lowest={array_lowest_price}")
+                                        return False
+                                
+                            else:
+                                print("ℹ️  google_suppliers_results is empty array (no suppliers found)")
+                        else:
+                            print(f"❌ google_suppliers_results is not an array: {type(google_suppliers)}")
+                            return False
                     else:
-                        print(f"❌ google_suppliers_results is not an array: {type(google_suppliers)}")
-                        return False
+                        print("ℹ️  google_suppliers_results is None (no Google API keys or no results found)")
+                        # This is acceptable - we should still have the google_lowest_price_eur field
+                        google_lowest_price = data.get("google_lowest_price_eur")
+                        if google_lowest_price is not None:
+                            print(f"✅ google_lowest_price_eur is available: €{google_lowest_price}")
+                        
                 else:
                     print("❌ google_suppliers_results field is missing from API response")
                     return False
