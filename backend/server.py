@@ -2638,7 +2638,7 @@ async def export_catalog(
     
     # Reorder and rename columns for better readability
     column_order = [
-        'gtin', 'name', 'brand', 'category',
+        'gtin', 'name', 'brand', 'category', 'image_url',
         'supplier_price_gbp', 'supplier_price_eur',
         'amazon_price_eur', 'google_lowest_price_eur',
         'cheapest_source', 'cheapest_buy_price_eur',
