@@ -1912,6 +1912,18 @@ async def compare_catalog_product(
     google_vs_amazon_diff = round(google_lowest_price - amazon_price, 2) if (google_lowest_price and amazon_price) else None
     supplier_vs_google_diff = round(supplier_price - google_lowest_price, 2) if google_lowest_price else None
     
+    # ==================== OPPORTUNITY SCORE ====================
+    google_suppliers_count = len(google_suppliers) if google_suppliers else 0
+    opportunity = calculate_opportunity_score(
+        margin_eur=best_margin['margin_eur'],
+        margin_percentage=best_margin['margin_percentage'],
+        price_trend=price_trend,
+        google_suppliers_count=google_suppliers_count,
+        amazon_price=amazon_price,
+        supplier_price=supplier_price
+    )
+    logger.info(f"Opportunity score for {product['name']}: {opportunity['score']}/100 ({opportunity['level']})")
+    
     # Update product in database with all comparison data
     update_data = {
         'amazon_price_eur': amazon_price,
