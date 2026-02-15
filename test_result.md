@@ -478,15 +478,18 @@ backend:
 
   - task: "Compare All Catalog Products endpoint"
     implemented: true
-    working: "NA"
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "POST /api/catalog/compare-all - Fetches all product IDs for the current user and runs price comparison on all of them. Returns total, success, failed counts with results and errors. Timeout extended for large catalogs."
+      - working: true
+        agent: "testing"
+        comment: "✅ Compare All endpoint working perfectly. Tested with empty catalog (returns 404 'Aucun produit dans le catalogue' as expected), imported test catalog with 5 products (100% success), and original catalog with 453 products (100% success). Response structure correct: {total, success, failed, results, errors}. Mock data functionality confirmed working when no API keys configured."
 
   - task: "Catalog Export"
     implemented: true
