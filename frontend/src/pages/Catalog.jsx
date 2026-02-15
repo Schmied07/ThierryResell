@@ -455,10 +455,27 @@ const Catalog = () => {
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                   <CardTitle className="text-white">Liste des produits</CardTitle>
                   <div className="flex flex-wrap gap-2">
+                    <Button
+                      onClick={handleCompareAll}
+                      disabled={comparingAll || comparing || totalProducts === 0}
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg shadow-blue-500/20"
+                    >
+                      {comparingAll ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Recherche en cours...
+                        </>
+                      ) : (
+                        <>
+                          <Search className="w-4 h-4 mr-2" />
+                          Rechercher tous les produits
+                        </>
+                      )}
+                    </Button>
                     {selectedProducts.length > 0 && (
                       <Button
                         onClick={handleCompareBatch}
-                        disabled={comparing}
+                        disabled={comparing || comparingAll}
                         className="bg-gradient-to-r from-green-500 to-emerald-500 text-white"
                       >
                         {comparing ? (
