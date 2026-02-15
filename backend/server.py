@@ -2155,7 +2155,8 @@ async def compare_catalog_product(
                                 'supplier_name': supplier_name,
                                 'url': item_url,
                                 'price': round(item_price, 2),
-                                'is_lowest': False  # Will be set later
+                                'is_lowest': False,  # Will be set later
+                                'is_amazon': item_is_amazon  # Flag Amazon results
                             })
                     
                     # Mark the lowest price supplier
