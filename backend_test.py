@@ -140,6 +140,10 @@ class BackendTester:
                 data = response.json()
                 print("✅ Comparison API response received")
                 
+                # Debug: Print response structure
+                print(f"🔍 Response keys: {list(data.keys())}")
+                print(f"🔍 Full response (first 500 chars): {str(data)[:500]}...")
+                
                 # Test 1: Check if google_suppliers_results field exists
                 google_suppliers = data.get("google_suppliers_results")
                 if google_suppliers is not None:
