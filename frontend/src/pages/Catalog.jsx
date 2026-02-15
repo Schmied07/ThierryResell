@@ -180,6 +180,28 @@ const Catalog = () => {
     }
   };
 
+  const [comparingAll, setComparingAll] = useState(false);
+
+  const handleCompareAll = async () => {
+    if (!window.confirm(`Rechercher les prix pour TOUS les produits du catalogue (${totalProducts} produits) ? Cette opération peut prendre quelques minutes.`)) {
+      return;
+    }
+
+    setComparingAll(true);
+    try {
+      const response = await api.post("/catalog/compare-all", {}, { timeout: 300000 });
+      toast.success(
+        `Recherche terminée ! ${response.data.success} produits comparés sur ${response.data.total}, ${response.data.failed} erreurs`
+      );
+      fetchProducts();
+      fetchStats();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur lors de la recherche globale");
+    } finally {
+      setComparingAll(false);
+    }
+  };
+
   const handleExport = async () => {
     try {
       const response = await api.get("/catalog/export", {
