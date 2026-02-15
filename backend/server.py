@@ -1626,6 +1626,7 @@ async def compare_catalog_product(
     amazon_price = None
     google_lowest_price = None
     is_mock_data = False
+    keepa_product = None  # Store Keepa product data for trend analysis
     
     # ==================== KEEPA API (Amazon price) ====================
     if keepa_key:
