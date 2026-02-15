@@ -1665,7 +1665,7 @@ async def import_catalog(
                 column_mapping = json_module.loads(column_mapping_json)
                 logger.info(f"Using manual column mapping: {column_mapping}")
             except (json_module.JSONDecodeError, TypeError):
-                logger.warning(f"Invalid column_mapping_json, falling back to auto-detect")
+                logger.warning("Invalid column_mapping_json, falling back to auto-detect")
                 column_mapping = auto_detect_column_mapping(list(df.columns))
         else:
             column_mapping = auto_detect_column_mapping(list(df.columns))
