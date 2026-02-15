@@ -2266,6 +2266,80 @@ async def compare_catalog_product(
     else:
         logger.info(f"Google search skipped: google_key={bool(google_key)}, google_cx={bool(google_cx)}")
     
+    # ==================== GOOGLE IMAGE SEARCH (if product has image_url) ====================
+    if google_key and google_cx and product.get('image_url') and not google_suppliers:
+        try:
+            image_url = product['image_url']
+            logger.info(f"Google Image Search for {product['name']} with image: {image_url}")
+            async with httpx.AsyncClient() as http_client:
+                # Use Google Custom Search with the image URL as a search term
+                # Google CSE doesn't support reverse image search directly,
+                # but we can search with the product name + image context
+                image_search_query = f"{product['brand']} {product['name']}"
+                response = await http_client.get(
+                    "https://www.googleapis.com/customsearch/v1",
+                    params={
+                        "key": google_key,
+                        "cx": google_cx,
+                        "q": image_search_query,
+                        "searchType": "image",
+                        "num": 10
+                    },
+                    timeout=30
+                )
+                logger.info(f"Google Image Search API response status: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    items = data.get('items', [])
+                    logger.info(f"Google Image Search returned {len(items)} items")
+                    
+                    for item in items:
+                        # For image search, the 'image' object contains contextLink (page URL)
+                        context_link = item.get('image', {}).get('contextLink', '')
+                        if not context_link:
+                            continue
+                        
+                        snippet = item.get('snippet', '')
+                        title = item.get('title', '')
+                        
+                        item_is_amazon = is_amazon_url(context_link)
+                        supplier_name = extract_supplier_name_from_url(context_link)
+                        if item_is_amazon:
+                            supplier_name = "Amazon"
+                        
+                        # Try to extract prices from title and snippet
+                        item_prices = []
+                        snippet_price = extract_price_from_text(snippet)
+                        if snippet_price:
+                            item_prices.append(snippet_price)
+                        title_price = extract_price_from_text(title)
+                        if title_price:
+                            item_prices.append(title_price)
+                        
+                        if item_prices:
+                            item_price = min(item_prices)
+                            google_suppliers.append({
+                                'supplier_name': supplier_name,
+                                'url': context_link,
+                                'price': round(item_price, 2),
+                                'is_lowest': False,
+                                'is_amazon': item_is_amazon,
+                                'source': 'image_search'
+                            })
+                    
+                    # Update lowest price if we found suppliers via image search
+                    if google_suppliers:
+                        lowest_price = min(s['price'] for s in google_suppliers)
+                        google_lowest_price = lowest_price
+                        for supplier in google_suppliers:
+                            if supplier['price'] == lowest_price:
+                                supplier['is_lowest'] = True
+                                break
+                        logger.info(f"Google Image Search found {len(google_suppliers)} suppliers for {product['name']}, lowest: €{google_lowest_price}")
+        except Exception as e:
+            logger.warning(f"Google Image Search error for {product['name']}: {e}")
+    
     # ==================== MOCK DATA FALLBACK ====================
     has_api_keys = bool(keepa_key) or bool(google_key and google_cx)
     
