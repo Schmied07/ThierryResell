@@ -298,6 +298,7 @@ class CatalogProduct(BaseModel):
     # Price data
     amazon_price_eur: Optional[float] = None  # Prix de vente Amazon (via Keepa)
     google_lowest_price_eur: Optional[float] = None  # Prix le plus bas en ligne (via Google)
+    google_suppliers_results: Optional[List[Dict[str, Any]]] = None  # Tous les fournisseurs Google avec détails
     # Comparison results
     cheapest_source: Optional[str] = None  # "supplier" or "google"
     cheapest_buy_price_eur: Optional[float] = None  # min(supplier, google)
