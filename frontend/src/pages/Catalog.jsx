@@ -739,9 +739,6 @@ const Catalog = () => {
                             <div className="space-y-2">
                               {[
                                 { field: 'GTIN', label: 'Code EAN / GTIN', icon: '🔢', desc: 'Code-barres produit' },
-                                { field: 'Name', label: 'Nom du produit', icon: '📝', desc: 'Nom/désignation' },
-                                { field: 'Category', label: 'Catégorie', icon: '📁', desc: 'Catégorie' },
-                                { field: 'Brand', label: 'Marque', icon: '🏷️', desc: 'Marque/fabricant' },
                                 { field: 'Price', label: 'Prix fournisseur', icon: '💰', desc: 'Prix en devise' }
                               ].map(({ field, label, icon, desc }) => {
                                 const mappedColumn = columnMapping[field];
