@@ -344,48 +344,65 @@ class BackendTester:
             return False
     
     def run_all_tests(self):
-        """Run all catalog-related tests"""
-        print("🧪 Starting Backend Catalog Testing")
-        print("=" * 50)
+        """Run all flexible catalog import tests"""
+        print("🧪 Starting Flexible Catalog Import Testing")
+        print("Testing that only GTIN and Price are required fields")
+        print("=" * 60)
         
         # Test 1: Health check
         print("\n1. Testing Health Endpoint")
         health_ok = self.test_health_endpoint()
         
-        # Test 2: Authentication
-        print("\n2. Authentication")
+        # Test 2: Authentication with new test user
+        print("\n2. Authentication (flextest@test.com)")
         auth_ok = self.authenticate() if health_ok else False
         
         # Test 2.5: Cleanup existing catalog
         print("\n2.5. Cleaning up existing catalog")
         cleanup_ok = self.cleanup_catalog() if auth_ok else False
         
-        # Test 3: Catalog Preview
-        print("\n3. Testing Catalog Preview Endpoint")
-        preview_ok = self.test_catalog_preview() if auth_ok and cleanup_ok else False
+        # Test 3: Catalog Preview - Check Required/Optional Fields
+        print("\n3. Testing Catalog Preview - Required/Optional Fields Structure")
+        preview_ok = self.test_catalog_preview_flexible_fields() if auth_ok and cleanup_ok else False
         
-        # Test 4: Catalog Import
-        print("\n4. Testing Catalog Import Endpoint")
-        import_ok = self.test_catalog_import() if auth_ok and cleanup_ok else False
+        # Test 4: Minimal Catalog Import - GTIN + Price Only
+        print("\n4. CRITICAL TEST: Import with Only GTIN + Price Mapped")
+        minimal_import_ok = self.test_catalog_import_minimal_fields() if auth_ok and cleanup_ok else False
+        
+        # Test 5: Verify products have 'Non spécifié' defaults
+        print("\n5. Verified products have correct default values")
+        # This is already included in minimal_import_ok verification
         
         # Summary
-        print("\n" + "=" * 50)
-        print("📋 Test Summary:")
+        print("\n" + "=" * 60)
+        print("📋 Flexible Catalog Import Test Summary:")
         print(f"Health Endpoint: {'✅' if health_ok else '❌'}")
         print(f"Authentication: {'✅' if auth_ok else '❌'}")
-        print(f"Catalog Preview: {'✅' if preview_ok else '❌'}")
-        print(f"Catalog Import: {'✅' if import_ok else '❌'}")
+        print(f"Required/Optional Fields Structure: {'✅' if preview_ok else '❌'}")
+        print(f"MINIMAL Import (GTIN+Price only): {'✅' if minimal_import_ok else '❌'}")
         
         total_tests = 4
-        passed_tests = sum([health_ok, auth_ok, preview_ok, import_ok])
+        passed_tests = sum([health_ok, auth_ok, preview_ok, minimal_import_ok])
         
         print(f"\nOverall: {passed_tests}/{total_tests} tests passed")
+        
+        # Critical results
+        if preview_ok and minimal_import_ok:
+            print("\n🎉 FLEXIBLE CATALOG IMPORT FEATURE: ✅ WORKING")
+            print("✅ Only GTIN and Price are required")
+            print("✅ Name, Category, Brand are optional with 'Non spécifié' defaults")
+        else:
+            print("\n❌ FLEXIBLE CATALOG IMPORT FEATURE: FAILED")
+            if not preview_ok:
+                print("❌ Preview endpoint doesn't return correct required/optional fields")
+            if not minimal_import_ok:
+                print("❌ Import with only GTIN+Price fails or doesn't set proper defaults")
         
         return {
             "health": health_ok,
             "authentication": auth_ok,
             "preview": preview_ok,
-            "import": import_ok,
+            "minimal_import": minimal_import_ok,
             "total_passed": passed_tests,
             "total_tests": total_tests
         }
