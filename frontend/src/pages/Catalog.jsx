@@ -46,6 +46,9 @@ const Catalog = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [minMargin, setMinMargin] = useState("");
   const [comparedOnly, setComparedOnly] = useState(false);
+  const [minOpportunityScore, setMinOpportunityScore] = useState("");
+  const [opportunityLevel, setOpportunityLevel] = useState("");
+  const [trendFilter, setTrendFilter] = useState("");
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(0);
