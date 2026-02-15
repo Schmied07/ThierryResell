@@ -89,11 +89,24 @@ class BackendTester:
             self.error(f"Authentication failed: {e}")
             return False
     
-    def get_headers(self):
-        """Get headers with auth token"""
-        if not self.auth_token:
-            return {}
-        return {"Authorization": f"Bearer {self.auth_token}"}
+    def cleanup_catalog(self):
+        """Clean up existing catalog data before testing"""
+        try:
+            response = self.session.delete(
+                f"{BACKEND_URL}/catalog/products",
+                headers=self.get_headers()
+            )
+            
+            if response.status_code in [200, 404]:
+                self.log("✓ Catalog cleaned up for fresh testing")
+                return True
+            else:
+                self.log(f"Catalog cleanup returned status {response.status_code} (continuing anyway)")
+                return True  # Don't fail the test if cleanup fails
+                
+        except Exception as e:
+            self.log(f"Catalog cleanup failed: {e} (continuing anyway)")
+            return True  # Don't fail the test if cleanup fails
     
     def test_catalog_preview(self):
         """Test catalog preview endpoint with test file"""
