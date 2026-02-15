@@ -959,9 +959,23 @@ const Catalog = () => {
                                     />
                                   </TableCell>
                                   <TableCell>
-                                    <div className="max-w-[250px]">
-                                      <p className="text-white text-sm font-medium truncate">{product.name}</p>
-                                      <p className="text-zinc-500 text-xs">{product.brand} · {product.gtin}</p>
+                                    <div className="flex items-center gap-3 max-w-[280px]">
+                                      {product.image_url ? (
+                                        <img 
+                                          src={product.image_url} 
+                                          alt={product.name}
+                                          className="w-10 h-10 object-cover rounded-lg border border-zinc-700 flex-shrink-0"
+                                          onError={(e) => { e.target.style.display = 'none'; }}
+                                        />
+                                      ) : (
+                                        <div className="w-10 h-10 bg-zinc-800 rounded-lg border border-zinc-700 flex items-center justify-center flex-shrink-0">
+                                          <Package className="w-4 h-4 text-zinc-600" />
+                                        </div>
+                                      )}
+                                      <div className="min-w-0">
+                                        <p className="text-white text-sm font-medium truncate">{product.name}</p>
+                                        <p className="text-zinc-500 text-xs">{product.brand} · {product.gtin}</p>
+                                      </div>
                                     </div>
                                   </TableCell>
                                   <TableCell className="text-right">
