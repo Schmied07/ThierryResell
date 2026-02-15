@@ -344,11 +344,11 @@ class BackendTester:
         
         # Test 3: Catalog Preview
         print("\n3. Testing Catalog Preview Endpoint")
-        preview_ok = self.test_catalog_preview() if auth_ok else False
+        preview_ok = self.test_catalog_preview() if auth_ok and cleanup_ok else False
         
         # Test 4: Catalog Import
         print("\n4. Testing Catalog Import Endpoint")
-        import_ok = self.test_catalog_import() if auth_ok else False
+        import_ok = self.test_catalog_import() if auth_ok and cleanup_ok else False
         
         # Summary
         print("\n" + "=" * 50)
