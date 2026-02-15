@@ -504,6 +504,21 @@ agent_communication:
 user_problem_statement: "Import de catalogue flexible - seuls le prix et l'identifiant (GTIN/EAN) sont obligatoires. Les autres colonnes (Nom, Catégorie, Marque, Image) sont optionnelles et peuvent être matchées si disponibles."
 
 backend:
+  - task: "Flexible Catalog Import - GTIN and Price Required Only"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main" 
+          comment: "FEATURE: Made catalog import flexible - only GTIN and Price are required fields. Name, Category, Brand moved to optional fields with default values ('Non spécifié'). Backend: preview endpoint returns required_fields=['GTIN','Price'], optional_fields includes Name/Category/Brand/Image. Product creation handles missing optional fields gracefully."
+        - working: true
+          agent: "testing"
+          comment: "✅ FLEXIBLE CATALOG IMPORT TESTED SUCCESSFULLY: 1) POST /api/catalog/preview returns required_fields=['GTIN', 'Price'] (NOT 5 fields) and optional_fields includes Name, Category, Brand, Image. Tested with /app/catalog_sample.xlsx (12 columns detected). 2) Created minimal Excel with only EAN and prix_achat columns. 3) POST /api/catalog/import with column_mapping_json={'GTIN': 'EAN', 'Price': 'prix_achat'} successfully imports 2 products. 4) GET /api/catalog/products verified products have 'Non spécifié' defaults for unmapped Name, Category, Brand fields. Prices converted correctly from GBP to EUR. CRITICAL FEATURE WORKING PERFECTLY."
+
   - task: "User Registration"
     implemented: true
     working: true
