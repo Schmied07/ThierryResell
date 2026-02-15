@@ -1940,6 +1940,12 @@ async def compare_catalog_product(
         'google_margin_percentage': google_margin['margin_percentage'],
         'google_vs_amazon_diff_eur': google_vs_amazon_diff,
         'supplier_vs_google_diff_eur': supplier_vs_google_diff,
+        # Price trend analysis
+        'price_trend': price_trend,
+        # Opportunity score
+        'opportunity_score': opportunity['score'],
+        'opportunity_level': opportunity['level'],
+        'opportunity_details': opportunity['details'],
         # Legacy fields
         'google_price_eur': google_lowest_price,
         'best_price_eur': cheapest_buy_price,
