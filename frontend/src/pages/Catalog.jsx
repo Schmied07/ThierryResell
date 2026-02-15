@@ -601,6 +601,18 @@ const Catalog = () => {
                             <TableHead className="text-zinc-400 text-center">Source - chère</TableHead>
                             <TableHead className="text-zinc-400 text-right">Frais Amazon</TableHead>
                             <TableHead className="text-zinc-400 text-right">Marge nette</TableHead>
+                            <TableHead className="text-zinc-400 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <TrendingUp className="w-3 h-3" />
+                                Tendance
+                              </div>
+                            </TableHead>
+                            <TableHead className="text-zinc-400 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <Sparkles className="w-3 h-3" />
+                                Score
+                              </div>
+                            </TableHead>
                             <TableHead className="text-zinc-400 w-24">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
