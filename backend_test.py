@@ -438,14 +438,25 @@ class BackendTester:
         # Test authentication requirements
         test_results["authentication_required"] = self.test_authentication_required()
         
-        # Test catalog endpoints
+        # Test catalog endpoints with empty catalog
         test_results["catalog_stats_empty"] = self.test_catalog_stats_empty()
         test_results["catalog_products_empty"] = self.test_catalog_products_empty()
         test_results["catalog_opportunities_empty"] = self.test_catalog_opportunities_empty()
         
-        # Test comparison endpoints
+        # Test comparison endpoints with empty catalog
         test_results["compare_nonexistent_product"] = self.test_compare_nonexistent_product()
         test_results["compare_batch_empty"] = self.test_compare_batch_empty()
+        test_results["compare_all_empty_catalog"] = self.test_compare_all_empty_catalog()
+        
+        # Test catalog import (adds products to the catalog)
+        test_results["catalog_import"] = self.test_catalog_import()
+        
+        # Test compare-all endpoint after importing products
+        if test_results["catalog_import"]:
+            test_results["compare_all_with_products"] = self.test_compare_all_with_products()
+        else:
+            self.log("⚠️  Skipping compare-all with products test due to import failure", "WARN")
+            test_results["compare_all_with_products"] = False
         
         # Test API consistency
         test_results["api_structure_consistency"] = self.test_api_structure_consistency()
