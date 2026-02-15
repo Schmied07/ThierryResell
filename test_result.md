@@ -178,6 +178,30 @@ backend:
         agent: "main"
         comment: "ENHANCEMENT: Updated GET /api/catalog/opportunities to sort by opportunity_score (descending) first, then by amazon_margin_eur as fallback. Provides intelligent prioritization of best reselling opportunities based on multi-factor analysis."
 
+  - task: "Profitability Predictions - Price forecasting algorithm"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "NEW FEATURE: Created predict_price_profitability() function using linear regression on Keepa historical data. Predicts Amazon prices and profit margins for 30/60/90 days. Returns: predicted_price, predicted_profit_eur, profit_change_percentage, confidence_level (high/medium/low), recommendation (acheter_maintenant/attendre/risque), volatility_risk assessment. Integrated into compare_catalog_product endpoint. Stored in profitability_predictions field."
+
+  - task: "Multi-Market Arbitrage - Amazon FR/UK/DE/ES comparison"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "NEW FEATURE: Created analyze_multi_market_arbitrage() function that compares prices across 4 Amazon marketplaces (France 🇫🇷, UK 🇬🇧, Germany 🇩🇪, Spain 🇪🇸). For each market: calls Keepa API with domain parameter, converts currencies to EUR (GBP rate: 1.17), calculates margins with 15% Amazon fees. Returns: markets dict with all prices/margins, best_buy_market (lowest price), best_sell_market (highest margin), arbitrage_opportunity_eur (max profit difference). Integrated into compare_catalog_product endpoint with mock data fallback. Stored in multi_market_arbitrage field."
+
 frontend:
   - task: "Catalog table - Trend and Opportunity Score columns"
     implemented: true
