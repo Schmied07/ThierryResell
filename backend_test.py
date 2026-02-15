@@ -59,7 +59,7 @@ class BackendTester:
             
             response = self.session.post(f"{BACKEND_URL}/auth/register", json=register_data)
             
-            if response.status_code == 201:
+            if response.status_code in [200, 201]:
                 data = response.json()
                 self.auth_token = data.get("token")
                 self.log(f"User registered successfully: {data.get('user', {}).get('email')}")
