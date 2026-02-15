@@ -1231,6 +1231,276 @@ const ProductComparisonDetail = ({ product, compareResult }) => {
         </div>
       )}
 
+      {/* Profitability Predictions */}
+      {product.profitability_predictions && (
+        <div className="bg-gradient-to-br from-emerald-900/20 to-teal-900/20 rounded-lg p-4 border border-emerald-500/30">
+          <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-emerald-400" />
+            🔮 Prévisions de Profitabilité (30/60/90 jours)
+          </h4>
+
+          {/* Recommendation Badge */}
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex-1">
+              {product.profitability_predictions.recommendation === 'acheter_maintenant' && (
+                <Badge className="bg-green-500/20 text-green-300 border border-green-500/30 text-sm px-3 py-1">
+                  ✅ Acheter Maintenant - Profit en hausse
+                </Badge>
+              )}
+              {product.profitability_predictions.recommendation === 'attendre' && (
+                <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-sm px-3 py-1">
+                  ⏳ Attendre - Profit stable
+                </Badge>
+              )}
+              {product.profitability_predictions.recommendation === 'risque' && (
+                <Badge className="bg-red-500/20 text-red-300 border border-red-500/30 text-sm px-3 py-1">
+                  ⚠️ Risqué - Profit en baisse ou volatilité élevée
+                </Badge>
+              )}
+            </div>
+            <div className="text-right">
+              <p className="text-zinc-400 text-xs">Confiance</p>
+              <p className={`text-sm font-bold ${
+                product.profitability_predictions.confidence_level === 'high' ? 'text-green-400' : 
+                product.profitability_predictions.confidence_level === 'medium' ? 'text-yellow-400' : 
+                'text-red-400'
+              }`}>
+                {product.profitability_predictions.confidence_level === 'high' ? 'Haute' : 
+                 product.profitability_predictions.confidence_level === 'medium' ? 'Moyenne' : 
+                 'Faible'}
+              </p>
+            </div>
+          </div>
+
+          {/* Predictions Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* 30 days */}
+            <div className="bg-zinc-800/50 rounded-lg p-3 border border-emerald-500/20">
+              <p className="text-emerald-300 text-sm font-semibold mb-2">30 jours</p>
+              <div className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-zinc-400 text-xs">Prix prévu</span>
+                  <span className="text-white text-sm font-bold">
+                    {product.profitability_predictions.predictions['30d'].price.toFixed(2)}€
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-zinc-400 text-xs">Profit prévu</span>
+                  <span className={`text-sm font-bold ${
+                    product.profitability_predictions.predictions['30d'].profit_eur >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {product.profitability_predictions.predictions['30d'].profit_eur >= 0 ? '+' : ''}
+                    {product.profitability_predictions.predictions['30d'].profit_eur.toFixed(2)}€
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pt-1 border-t border-zinc-700">
+                  <span className="text-zinc-400 text-xs">Changement</span>
+                  <span className={`text-xs font-bold ${
+                    product.profitability_predictions.predictions['30d'].profit_change_pct >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {product.profitability_predictions.predictions['30d'].profit_change_pct >= 0 ? '+' : ''}
+                    {product.profitability_predictions.predictions['30d'].profit_change_pct}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 60 days */}
+            <div className="bg-zinc-800/50 rounded-lg p-3 border border-emerald-500/20">
+              <p className="text-emerald-300 text-sm font-semibold mb-2">60 jours</p>
+              <div className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-zinc-400 text-xs">Prix prévu</span>
+                  <span className="text-white text-sm font-bold">
+                    {product.profitability_predictions.predictions['60d'].price.toFixed(2)}€
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-zinc-400 text-xs">Profit prévu</span>
+                  <span className={`text-sm font-bold ${
+                    product.profitability_predictions.predictions['60d'].profit_eur >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {product.profitability_predictions.predictions['60d'].profit_eur >= 0 ? '+' : ''}
+                    {product.profitability_predictions.predictions['60d'].profit_eur.toFixed(2)}€
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pt-1 border-t border-zinc-700">
+                  <span className="text-zinc-400 text-xs">Changement</span>
+                  <span className={`text-xs font-bold ${
+                    product.profitability_predictions.predictions['60d'].profit_change_pct >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {product.profitability_predictions.predictions['60d'].profit_change_pct >= 0 ? '+' : ''}
+                    {product.profitability_predictions.predictions['60d'].profit_change_pct}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 90 days */}
+            <div className="bg-zinc-800/50 rounded-lg p-3 border border-emerald-500/20">
+              <p className="text-emerald-300 text-sm font-semibold mb-2">90 jours</p>
+              <div className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-zinc-400 text-xs">Prix prévu</span>
+                  <span className="text-white text-sm font-bold">
+                    {product.profitability_predictions.predictions['90d'].price.toFixed(2)}€
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-zinc-400 text-xs">Profit prévu</span>
+                  <span className={`text-sm font-bold ${
+                    product.profitability_predictions.predictions['90d'].profit_eur >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {product.profitability_predictions.predictions['90d'].profit_eur >= 0 ? '+' : ''}
+                    {product.profitability_predictions.predictions['90d'].profit_eur.toFixed(2)}€
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pt-1 border-t border-zinc-700">
+                  <span className="text-zinc-400 text-xs">Changement</span>
+                  <span className={`text-xs font-bold ${
+                    product.profitability_predictions.predictions['90d'].profit_change_pct >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {product.profitability_predictions.predictions['90d'].profit_change_pct >= 0 ? '+' : ''}
+                    {product.profitability_predictions.predictions['90d'].profit_change_pct}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Risk Assessment */}
+          <div className="mt-3 pt-3 border-t border-emerald-500/20 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-zinc-400" />
+              <span className="text-zinc-400 text-xs">Risque de volatilité:</span>
+              <Badge className={`text-xs ${
+                product.profitability_predictions.volatility_risk === 'faible' ? 'bg-green-500/20 text-green-300 border-green-500/30' :
+                product.profitability_predictions.volatility_risk === 'moyen' ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' :
+                'bg-red-500/20 text-red-300 border-red-500/30'
+              } border`}>
+                {product.profitability_predictions.volatility_risk === 'faible' ? 'Faible' :
+                 product.profitability_predictions.volatility_risk === 'moyen' ? 'Moyen' : 'Élevé'}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-zinc-400 text-xs">Tendance:</span>
+              <span className={`text-xs font-bold ${
+                product.profitability_predictions.trend_direction === 'hausse' ? 'text-green-400' :
+                product.profitability_predictions.trend_direction === 'baisse' ? 'text-red-400' :
+                'text-zinc-400'
+              }`}>
+                {product.profitability_predictions.trend_direction === 'hausse' ? '📈 Hausse' :
+                 product.profitability_predictions.trend_direction === 'baisse' ? '📉 Baisse' : '➡️ Stable'}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-3 pt-3 border-t border-emerald-500/20">
+            <p className="text-zinc-400 text-xs flex items-center gap-2">
+              <Info className="w-4 h-4" />
+              Prévisions basées sur l'historique de prix Keepa (régression linéaire). Plus la volatilité est faible et les données historiques abondantes, plus la prévision est fiable.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Multi-Market Arbitrage */}
+      {product.multi_market_arbitrage && product.multi_market_arbitrage.analysis_available && (
+        <div className="bg-gradient-to-br from-indigo-900/20 to-purple-900/20 rounded-lg p-4 border border-indigo-500/30">
+          <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
+            <Globe className="w-5 h-5 text-indigo-400" />
+            🌍 Arbitrage Multi-Marchés Amazon (FR/UK/DE/ES)
+          </h4>
+
+          {/* Best Opportunities Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/30">
+              <p className="text-green-300 text-xs font-medium mb-2">💰 Meilleur marché VENTE</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{product.multi_market_arbitrage.best_sell_market.flag}</span>
+                  <span className="text-white font-bold">{product.multi_market_arbitrage.best_sell_market.country}</span>
+                </div>
+                <span className="text-green-400 font-bold text-lg">
+                  +{product.multi_market_arbitrage.best_sell_market.margin_eur.toFixed(2)}€
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-blue-500/10 rounded-lg p-3 border border-blue-500/30">
+              <p className="text-blue-300 text-xs font-medium mb-2">🛒 Meilleur marché ACHAT</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{product.multi_market_arbitrage.best_buy_market.flag}</span>
+                  <span className="text-white font-bold">{product.multi_market_arbitrage.best_buy_market.country}</span>
+                </div>
+                <span className="text-blue-400 font-bold text-lg">
+                  {product.multi_market_arbitrage.best_buy_market.price_eur.toFixed(2)}€
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Arbitrage Opportunity */}
+          {product.multi_market_arbitrage.arbitrage_opportunity_eur > 0 && (
+            <div className="bg-purple-500/10 rounded-lg p-3 border border-purple-500/30 mb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-purple-400" />
+                  <span className="text-white font-semibold">Opportunité d'arbitrage international</span>
+                </div>
+                <span className="text-purple-400 font-bold text-xl">
+                  +{product.multi_market_arbitrage.arbitrage_opportunity_eur.toFixed(2)}€
+                </span>
+              </div>
+              <p className="text-zinc-400 text-xs mt-2">
+                Profit supplémentaire en vendant sur le meilleur marché vs le marché de référence
+              </p>
+            </div>
+          )}
+
+          {/* Markets Comparison Table */}
+          <div className="bg-zinc-800/30 rounded-lg p-3 border border-zinc-700">
+            <p className="text-zinc-300 text-sm font-semibold mb-3">Comparaison par marché</p>
+            <div className="space-y-2">
+              {Object.entries(product.multi_market_arbitrage.markets).map(([code, market]) => (
+                <div key={code} className="flex items-center justify-between bg-zinc-800/50 rounded p-2">
+                  <div className="flex items-center gap-3 flex-1">
+                    <span className="text-2xl">{market.flag}</span>
+                    <div className="flex-1">
+                      <p className="text-white text-sm font-medium">{market.country}</p>
+                      {market.available ? (
+                        <p className="text-zinc-400 text-xs">
+                          {market.price_local.toFixed(2)} {market.currency}
+                          {market.exchange_rate !== 1.0 && ` (${market.price_eur.toFixed(2)}€)`}
+                        </p>
+                      ) : (
+                        <p className="text-red-400 text-xs">{market.reason || 'Non disponible'}</p>
+                      )}
+                    </div>
+                  </div>
+                  {market.available && (
+                    <div className="text-right">
+                      <p className={`text-sm font-bold ${market.margin_eur >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {market.margin_eur >= 0 ? '+' : ''}{market.margin_eur.toFixed(2)}€
+                      </p>
+                      <p className="text-zinc-500 text-xs">{market.margin_percentage.toFixed(1)}%</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-3 pt-3 border-t border-indigo-500/20">
+            <p className="text-zinc-400 text-xs flex items-center gap-2">
+              <Info className="w-4 h-4" />
+              Analyse des prix Amazon sur 4 marchés européens. Les prix sont convertis en EUR. Frais Amazon: 15% par marché.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Comparison Summary */}
       {amazonPrice && (
         <div className="bg-zinc-800/30 rounded-lg p-4 border border-zinc-700">
