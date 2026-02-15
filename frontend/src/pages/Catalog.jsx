@@ -118,9 +118,38 @@ const Catalog = () => {
     if (selectedFile) {
       if (selectedFile.name.endsWith('.xlsx') || selectedFile.name.endsWith('.xls')) {
         setFile(selectedFile);
+        setImportStep(1);
+        setPreviewData(null);
+        setColumnMapping({});
       } else {
         toast.error("Veuillez sélectionner un fichier Excel (.xlsx ou .xls)");
       }
+    }
+  };
+
+  const handlePreview = async () => {
+    if (!file) {
+      toast.error("Veuillez sélectionner un fichier");
+      return;
+    }
+
+    setPreviewing(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await api.post("/catalog/preview", formData, {
+        timeout: 60000
+      });
+
+      setPreviewData(response.data);
+      setColumnMapping(response.data.suggested_mapping || {});
+      setImportStep(2);
+      toast.success(`${response.data.total_rows} lignes détectées. Vérifiez le mapping des colonnes.`);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur lors de la prévisualisation");
+    } finally {
+      setPreviewing(false);
     }
   };
 
@@ -130,10 +159,19 @@ const Catalog = () => {
       return;
     }
 
+    // Validate required fields are mapped
+    const requiredFields = ['GTIN', 'Name', 'Category', 'Brand', 'Price'];
+    const missingFields = requiredFields.filter(f => !columnMapping[f]);
+    if (missingFields.length > 0) {
+      toast.error(`Colonnes requises non mappées : ${missingFields.join(', ')}`);
+      return;
+    }
+
     setUploading(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("column_mapping_json", JSON.stringify(columnMapping));
 
       const response = await api.post("/catalog/import", formData, {
         timeout: 120000
@@ -144,6 +182,9 @@ const Catalog = () => {
       );
       
       setFile(null);
+      setImportStep(1);
+      setPreviewData(null);
+      setColumnMapping({});
       if (fileInputRef.current) fileInputRef.current.value = "";
       
       fetchStats();
@@ -153,6 +194,26 @@ const Catalog = () => {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleMappingChange = (field, value) => {
+    setColumnMapping(prev => {
+      const newMapping = { ...prev };
+      if (value === '') {
+        delete newMapping[field];
+      } else {
+        newMapping[field] = value;
+      }
+      return newMapping;
+    });
+  };
+
+  const resetImport = () => {
+    setFile(null);
+    setImportStep(1);
+    setPreviewData(null);
+    setColumnMapping({});
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleCompareProduct = async (productId) => {
