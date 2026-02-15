@@ -102,10 +102,22 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Quand on ajoute un catalogue fournisseur, obtenir le prix Amazon via Keepa API et le prix le plus bas via Google API. Comparer Google vs Amazon, Amazon vs fournisseur. Calculer la marge nette si on achète pour revendre sur Amazon (avec frais Amazon 15% TTC)."
+user_problem_statement: "Quand on ajoute un catalogue fournisseur, obtenir le prix Amazon via Keepa API et TOUS les prix des fournisseurs via Google API avec leurs liens. Le prix le plus bas Google doit être mis en avant."
 
 backend:
-  - task: "Catalog compare endpoint - Keepa Amazon price + Google lowest price + margin calculation"
+  - task: "Google Search - Capture all suppliers with prices and links"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "NEW FEATURE: Modified Google Custom Search integration to capture ALL supplier results (not just lowest price). Now stores google_suppliers_results array with: supplier_name (extracted from URL), url (product link), price, is_lowest (flag for cheapest). Added extract_supplier_name_from_url() helper function. API response includes google_suppliers_results field with complete list."
+
+  - task: "Catalog compare endpoint - Keepa Amazon price + Google all suppliers + margin calculation"
     implemented: true
     working: true
     file: "backend/server.py"
@@ -122,6 +134,9 @@ backend:
       - working: "NA"
         agent: "main"
         comment: "BUGFIX: Changed Keepa API from /search?term=EAN (keyword search) to /product?code=EAN (barcode lookup). Added 3 price extraction methods: stats.current, csv price history, buyBoxPrice. Verified with real Keepa API - Elmex Junior found correctly (ASIN B0D5D9CGFM, price 3.60 EUR). Also improved text search endpoint with two-step search (search for ASIN, then product details)."
+      - working: "NA"
+        agent: "main"
+        comment: "ENHANCEMENT: Now returns google_suppliers_results in API response for frontend display"
 
   - task: "Catalog stats endpoint - updated with new margin fields"
     implemented: true
