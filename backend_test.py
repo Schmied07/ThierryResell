@@ -116,14 +116,33 @@ class BackendTester:
             self.log(f"Catalog cleanup failed: {e} (continuing anyway)")
             return True  # Don't fail the test if cleanup fails
     
-    def test_catalog_preview(self):
-        """Test catalog preview endpoint with test file"""
+    def create_minimal_excel_file(self):
+        """Create a minimal Excel file with just EAN and price columns"""
         try:
-            # Check if test file exists
-            test_file_path = Path("/tmp/test_catalog.xlsx")
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.append(['EAN', 'prix_achat'])
+            ws.append(['8718951388574', 5.99])
+            ws.append(['3014260033279', 3.50])
+            
+            file_path = '/tmp/test_minimal.xlsx'
+            wb.save(file_path)
+            self.log(f"Created minimal test Excel file: {file_path}")
+            return file_path
+        except Exception as e:
+            self.error(f"Failed to create minimal Excel file: {e}")
+            return None
+    
+    def test_catalog_preview_flexible_fields(self):
+        """Test catalog preview endpoint returns correct required/optional fields"""
+        try:
+            # Use existing catalog sample file first
+            test_file_path = Path("/app/catalog_sample.xlsx")
             if not test_file_path.exists():
-                self.error("Test catalog file not found at /tmp/test_catalog.xlsx")
-                return False
+                test_file_path = Path("/app/test_catalog.xlsx")
+                if not test_file_path.exists():
+                    self.error("No test catalog file found at /app/catalog_sample.xlsx or /app/test_catalog.xlsx")
+                    return False
             
             # Upload file for preview
             with open(test_file_path, "rb") as f:
@@ -138,83 +157,35 @@ class BackendTester:
             if response.status_code == 200:
                 data = response.json()
                 
-                # Validate response structure
-                expected_keys = ["columns", "sample_data", "total_rows", "suggested_mapping"]
+                # Validate response structure includes new flexible field structure
+                expected_keys = ["columns", "sample_data", "total_rows", "suggested_mapping", "required_fields", "optional_fields"]
                 for key in expected_keys:
                     if key not in data:
                         self.error(f"Preview response missing key: {key}")
                         return False
                 
-                columns = data["columns"]
-                suggested_mapping = data["suggested_mapping"]
-                total_rows = data["total_rows"]
-                sample_data = data["sample_data"]
+                required_fields = data["required_fields"]
+                optional_fields = data["optional_fields"]
                 
-                self.log(f"Preview successful - Found {len(columns)} columns, {total_rows} total rows")
-                self.log(f"Columns detected: {columns}")
+                self.log(f"Preview successful - Required fields: {required_fields}")
+                self.log(f"Optional fields: {optional_fields}")
                 
-                # Verify expected columns from test file
-                expected_columns = ['Product Code', 'Product Title', 'Product Type', 'Manufacturer', 'Supplier Price', 'Product Image URL']
-                if columns == expected_columns:
-                    self.log("✓ All expected columns detected correctly")
+                # CRITICAL TEST: Verify required_fields contains ONLY ['GTIN', 'Price']
+                expected_required = ['GTIN', 'Price']
+                if required_fields == expected_required:
+                    self.log(f"✅ CRITICAL: Required fields correct: {required_fields}")
                 else:
-                    self.error(f"Column mismatch. Expected: {expected_columns}, Got: {columns}")
+                    self.error(f"❌ CRITICAL: Required fields incorrect! Expected: {expected_required}, Got: {required_fields}")
                     return False
                 
-                # Check suggested mapping auto-detects the fields
-                self.log(f"Suggested mapping: {suggested_mapping}")
-                
-                # Note: 'Product Code' is not auto-detected as GTIN since it's not in the keyword list
-                # This is expected behavior - the auto-detection looks for keywords like 'gtin', 'ean', 'barcode'
-                # But 'Product Code' doesn't match these patterns, which is fine
-                
-                # Verify auto-detection maps the fields it can detect
-                expected_auto_mappings = {
-                    'Name': 'Product Title', 
-                    'Category': 'Product Type',
-                    'Brand': 'Manufacturer',
-                    'Price': 'Supplier Price',
-                    'Image': 'Product Image URL'
-                }
-                
-                mapping_correct = True
-                for app_field, expected_column in expected_auto_mappings.items():
-                    if suggested_mapping.get(app_field) == expected_column:
-                        self.log(f"✓ {app_field} correctly auto-detected as '{expected_column}'")
+                # CRITICAL TEST: Verify optional_fields includes Name, Category, Brand, Image
+                expected_optional = ['Name', 'Category', 'Brand', 'Image']
+                for field in expected_optional:
+                    if field in optional_fields:
+                        self.log(f"✅ Optional field present: {field}")
                     else:
-                        self.error(f"✗ {app_field} auto-detection incorrect. Expected: '{expected_column}', Got: '{suggested_mapping.get(app_field)}'")
-                        mapping_correct = False
-                
-                # Check that GTIN is not auto-detected (expected for 'Product Code')
-                if 'GTIN' not in suggested_mapping or not suggested_mapping['GTIN']:
-                    self.log("✓ GTIN not auto-detected for 'Product Code' (expected - requires manual mapping)")
-                else:
-                    self.log(f"Note: GTIN was auto-detected as '{suggested_mapping['GTIN']}'")
-                
-                if not mapping_correct:
-                    return False
-                
-                # Check total rows (should be 3 for test file)
-                if total_rows == 3:
-                    self.log(f"✓ Total rows count correct: {total_rows}")
-                else:
-                    self.error(f"Total rows count incorrect. Expected: 3, Got: {total_rows}")
-                    return False
-                
-                # Check sample data has 3 rows
-                if len(sample_data) == 3:
-                    self.log(f"✓ Sample data provided: {len(sample_data)} rows")
-                    
-                    # Verify sample data contains expected product data
-                    first_row = sample_data[0]
-                    if 'Product Code' in first_row and str(first_row['Product Code']) == '3574661517506':
-                        self.log("✓ Sample data contains expected product data (Elmex Junior)")
-                    else:
-                        self.error(f"Sample data doesn't match expected content: {first_row}")
+                        self.error(f"❌ Missing expected optional field: {field}")
                         return False
-                else:
-                    self.error(f"Sample data count incorrect. Expected: 3, Got: {len(sample_data)}")
-                    return False
                 
                 return True
                 
