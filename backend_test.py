@@ -197,31 +197,27 @@ class BackendTester:
             self.error(f"Catalog preview test failed: {e}")
             return False
     
-    def test_catalog_import(self):
-        """Test catalog import endpoint with manual column mapping"""
+    def test_catalog_import_minimal_fields(self):
+        """Test catalog import with ONLY GTIN and Price mapped (no Name, Category, Brand)"""
         try:
-            # Check if test file exists
-            test_file_path = Path("/tmp/test_catalog.xlsx")
-            if not test_file_path.exists():
-                self.error("Test catalog file not found at /tmp/test_catalog.xlsx")
+            # Create minimal Excel file with just EAN and price columns
+            minimal_file_path = self.create_minimal_excel_file()
+            if not minimal_file_path:
                 return False
             
-            # Test import with manual column mapping as specified in review request
-            manual_mapping = {
-                'GTIN': 'Product Code',
-                'Name': 'Product Title',
-                'Category': 'Product Type', 
-                'Brand': 'Manufacturer',
-                'Price': 'Supplier Price',
-                'Image': 'Product Image URL'
+            # Test import with ONLY GTIN and Price mapped (other fields should get defaults)
+            minimal_mapping = {
+                'GTIN': 'EAN',
+                'Price': 'prix_achat'
+                # Deliberately omitting Name, Category, Brand - they should get 'Non spécifié' defaults
             }
             
-            self.log(f"Testing import with manual column mapping: {manual_mapping}")
+            self.log(f"Testing minimal import with only required fields mapped: {minimal_mapping}")
             
-            # Test import with manual mapping
-            with open(test_file_path, "rb") as f:
-                files = {"file": (test_file_path.name, f, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
-                data = {"column_mapping_json": json.dumps(manual_mapping)}
+            # Test import with minimal mapping
+            with open(minimal_file_path, "rb") as f:
+                files = {"file": ("test_minimal.xlsx", f, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
+                data = {"column_mapping_json": json.dumps(minimal_mapping)}
                 
                 response = self.session.post(
                     f"{BACKEND_URL}/catalog/import",
@@ -245,40 +241,31 @@ class BackendTester:
                     skipped = data["skipped"]
                     total = data["total"]
                     
-                    self.log(f"Catalog import successful: {imported} imported, {skipped} skipped, {total} total")
+                    self.log(f"✅ CRITICAL: Minimal catalog import successful: {imported} imported, {skipped} skipped, {total} total")
                     
-                    # Should have imported 3 products from test file
-                    if imported == 3:
-                        self.log(f"✓ Successfully imported all {imported} products from test file")
+                    # Should have imported 2 products from minimal file
+                    if imported == 2:
+                        self.log(f"✅ Successfully imported all {imported} products with only GTIN+Price mapping")
                         
-                        # Verify products were imported correctly by checking catalog
-                        return self.verify_imported_products()
+                        # Verify products were imported with 'Non spécifié' defaults
+                        return self.verify_minimal_imported_products()
                     else:
-                        self.error(f"Expected to import 3 products, but imported {imported}")
+                        self.error(f"Expected to import 2 products, but imported {imported}")
                         return False
                 else:
                     self.error(f"Import marked as not successful: {data}")
                     return False
                     
-            elif response.status_code == 400:
-                error_text = response.text
-                if "missing columns" in error_text.lower() or "colonnes manquantes" in error_text.lower():
-                    self.error(f"Import failed with missing columns error: {error_text}")
-                    self.error(f"This suggests column mapping is not working properly")
-                    return False
-                else:
-                    self.error(f"Import failed with validation error: {error_text}")
-                    return False
             else:
-                self.error(f"Catalog import failed with status {response.status_code}: {response.text}")
+                self.error(f"❌ CRITICAL: Minimal catalog import failed with status {response.status_code}: {response.text}")
                 return False
                 
         except Exception as e:
-            self.error(f"Catalog import test failed: {e}")
+            self.error(f"Minimal catalog import test failed: {e}")
             return False
     
-    def verify_imported_products(self):
-        """Verify that products were imported correctly"""
+    def verify_minimal_imported_products(self):
+        """Verify that minimal products were imported with 'Non spécifié' defaults"""
         try:
             response = self.session.get(
                 f"{BACKEND_URL}/catalog/products",
@@ -289,41 +276,71 @@ class BackendTester:
                 data = response.json()
                 products = data.get("products", [])
                 
-                if len(products) >= 3:
+                if len(products) >= 2:
                     self.log(f"✓ Found {len(products)} products in catalog")
                     
-                    # Check for specific test products
-                    expected_products = [
-                        {"gtin": "3574661517506", "name": "Elmex Junior", "brand": "Elmex"},
-                        {"gtin": "3574661517513", "name": "Colgate Max Fresh", "brand": "Colgate"},
-                        {"gtin": "8410076404117", "name": "Oral-B Pro Expert", "brand": "Oral-B"}
-                    ]
+                    # Check for specific test products with 'Non spécifié' defaults
+                    expected_gtins = ['8718951388574', '3014260033279']
                     
                     found_products = 0
-                    for expected in expected_products:
+                    for expected_gtin in expected_gtins:
                         for product in products:
-                            if (product.get("gtin") == expected["gtin"] and 
-                                expected["name"] in product.get("name", "") and
-                                product.get("brand") == expected["brand"]):
+                            if product.get("gtin") == expected_gtin:
                                 found_products += 1
-                                self.log(f"✓ Found expected product: {expected['name']} (GTIN: {expected['gtin']})")
+                                
+                                # CRITICAL TEST: Verify default values for unmapped fields
+                                name = product.get("name")
+                                category = product.get("category")
+                                brand = product.get("brand")
+                                price = product.get("supplier_price_eur")
+                                
+                                self.log(f"Product {expected_gtin}: name='{name}', category='{category}', brand='{brand}', price={price}€")
+                                
+                                # Check that unmapped fields have 'Non spécifié' default
+                                if name == 'Non spécifié':
+                                    self.log(f"✅ CRITICAL: Product {expected_gtin} has correct default name: '{name}'")
+                                else:
+                                    self.error(f"❌ CRITICAL: Product {expected_gtin} should have name='Non spécifié', got '{name}'")
+                                    return False
+                                    
+                                if category == 'Non spécifié':
+                                    self.log(f"✅ CRITICAL: Product {expected_gtin} has correct default category: '{category}'")
+                                else:
+                                    self.error(f"❌ CRITICAL: Product {expected_gtin} should have category='Non spécifié', got '{category}'")
+                                    return False
+                                    
+                                if brand == 'Non spécifié':
+                                    self.log(f"✅ CRITICAL: Product {expected_gtin} has correct default brand: '{brand}'")
+                                else:
+                                    self.error(f"❌ CRITICAL: Product {expected_gtin} should have brand='Non spécifié', got '{brand}'")
+                                    return False
+                                
+                                # Check that price was imported correctly
+                                expected_price = 5.99 if expected_gtin == '8718951388574' else 3.50
+                                # Allow for small conversion/rounding differences
+                                if abs(price - expected_price) < 0.1:
+                                    self.log(f"✅ Product {expected_gtin} has correct price: {price}€")
+                                else:
+                                    self.error(f"❌ Product {expected_gtin} has incorrect price. Expected ~{expected_price}€, got {price}€")
+                                    return False
+                                
                                 break
                     
-                    if found_products == 3:
-                        self.log("✓ All test products imported correctly with proper field mapping")
+                    if found_products == 2:
+                        self.log("✅ CRITICAL: All minimal test products imported correctly with 'Non spécifié' defaults")
                         return True
                     else:
-                        self.error(f"Only found {found_products}/3 expected products in catalog")
+                        self.error(f"Only found {found_products}/2 expected products in catalog")
                         return False
                 else:
-                    self.error(f"Expected at least 3 products in catalog, found {len(products)}")
+                    self.error(f"Expected at least 2 products in catalog, found {len(products)}")
                     return False
             else:
                 self.error(f"Failed to retrieve catalog products: {response.status_code}")
                 return False
                 
         except Exception as e:
-            self.error(f"Product verification failed: {e}")
+            self.error(f"Minimal product verification failed: {e}")
             return False
     
     def run_all_tests(self):
