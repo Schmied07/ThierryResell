@@ -1438,7 +1438,10 @@ async def get_catalog_products(
     category: Optional[str] = None,
     min_margin: Optional[float] = None,
     search: Optional[str] = None,
-    compared_only: bool = False
+    compared_only: bool = False,
+    min_opportunity_score: Optional[int] = None,
+    opportunity_level: Optional[str] = None,
+    trend: Optional[str] = None
 ):
     """Get catalog products with filters"""
     query = {'user_id': user['id']}
@@ -1456,6 +1459,12 @@ async def get_catalog_products(
             {'name': {'$regex': search, '$options': 'i'}},
             {'gtin': {'$regex': search, '$options': 'i'}}
         ]
+    if min_opportunity_score is not None:
+        query['opportunity_score'] = {'$gte': min_opportunity_score}
+    if opportunity_level:
+        query['opportunity_level'] = opportunity_level
+    if trend:
+        query['price_trend.trend'] = trend
     
     total = await db.catalog_products.count_documents(query)
     products = await db.catalog_products.find(
