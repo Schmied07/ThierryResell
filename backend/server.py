@@ -2222,6 +2222,28 @@ async def compare_catalog_product(
     )
     logger.info(f"Opportunity score for {product['name']}: {opportunity['score']}/100 ({opportunity['level']})")
     
+    # ==================== PROFITABILITY PREDICTIONS ====================
+    profitability_predictions = None
+    if price_trend and amazon_price:
+        profitability_predictions = predict_price_profitability(
+            price_trend=price_trend,
+            amazon_price=amazon_price,
+            supplier_price=cheapest_buy_price
+        )
+        if profitability_predictions:
+            logger.info(f"Profitability predictions for {product['name']}: 30d profit change = {profitability_predictions['predictions']['30d']['profit_change_pct']}%, recommendation = {profitability_predictions['recommendation']}")
+    
+    # ==================== MULTI-MARKET ARBITRAGE ====================
+    multi_market_arbitrage = None
+    if amazon_price:  # Only analyze arbitrage if we have Amazon price data
+        multi_market_arbitrage = await analyze_multi_market_arbitrage(
+            gtin=product['gtin'],
+            supplier_price_eur=supplier_price,
+            keepa_api_key=keepa_key
+        )
+        if multi_market_arbitrage and multi_market_arbitrage.get('analysis_available'):
+            logger.info(f"Multi-market arbitrage for {product['name']}: Best sell market = {multi_market_arbitrage['best_sell_market']['country']}, arbitrage profit = €{multi_market_arbitrage['arbitrage_opportunity_eur']}")
+    
     # Update product in database with all comparison data
     update_data = {
         'amazon_price_eur': amazon_price,
