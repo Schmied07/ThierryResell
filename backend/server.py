@@ -1479,6 +1479,7 @@ async def compare_catalog_product(
     if google_key and google_cx:
         try:
             search_query = f"{product['brand']} {product['name']} prix"
+            logger.info(f"Google search query: {search_query}")
             async with httpx.AsyncClient() as http_client:
                 response = await http_client.get(
                     "https://www.googleapis.com/customsearch/v1",
@@ -1490,9 +1491,12 @@ async def compare_catalog_product(
                     },
                     timeout=30
                 )
+                logger.info(f"Google API response status: {response.status_code}")
+                
                 if response.status_code == 200:
                     data = response.json()
                     items = data.get('items', [])
+                    logger.info(f"Google returned {len(items)} items")
                     found_prices = []
                     
                     for item in items:
@@ -1509,6 +1513,7 @@ async def compare_catalog_product(
                                 price = float(price_str.replace(',', '.'))
                                 if 0.01 < price < 100000:
                                     found_prices.append(price)
+                                    logger.info(f"Google: found price {price} in offer data")
                             except (ValueError, AttributeError):
                                 pass
                         
@@ -1520,6 +1525,7 @@ async def compare_catalog_product(
                                 price = float(price_str.replace(',', '.'))
                                 if 0.01 < price < 100000:
                                     found_prices.append(price)
+                                    logger.info(f"Google: found price {price} in product data")
                             except (ValueError, AttributeError):
                                 pass
                         
@@ -1527,16 +1533,24 @@ async def compare_catalog_product(
                         snippet_price = extract_price_from_text(snippet)
                         if snippet_price:
                             found_prices.append(snippet_price)
+                            logger.info(f"Google: found price {snippet_price} in snippet")
                         
                         title_price = extract_price_from_text(title)
                         if title_price:
                             found_prices.append(title_price)
+                            logger.info(f"Google: found price {title_price} in title")
                     
                     if found_prices:
                         google_lowest_price = min(found_prices)
                         logger.info(f"Google lowest price for {product['name']}: €{google_lowest_price} (from {len(found_prices)} prices found)")
+                    else:
+                        logger.info(f"Google: no prices found in search results for {product['name']}")
+                else:
+                    logger.warning(f"Google API HTTP {response.status_code}: {response.text[:300]}")
         except Exception as e:
             logger.warning(f"Google API error for {product['name']}: {e}")
+    else:
+        logger.info(f"Google search skipped: google_key={bool(google_key)}, google_cx={bool(google_cx)}")
     
     # ==================== MOCK DATA FALLBACK ====================
     has_api_keys = bool(keepa_key) or bool(google_key and google_cx)
