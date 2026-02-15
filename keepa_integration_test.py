@@ -7,7 +7,7 @@ import time
 from typing import Dict, Any
 
 # Configuration - Use the correct backend URL from frontend/.env
-BASE_URL = "https://keepa-google-sync.preview.emergentagent.com"
+BASE_URL = "https://catalog-fix-6.preview.emergentagent.com"
 API_PREFIX = "/api"
 
 # Real Keepa API key provided in review request

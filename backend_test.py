@@ -14,7 +14,7 @@ from datetime import datetime
 import pandas as pd
 
 # Use the public backend URL from environment
-BACKEND_URL = "https://keepa-google-sync.preview.emergentagent.com/api"
+BACKEND_URL = "https://catalog-fix-6.preview.emergentagent.com/api"
 
 class BackendTester:
     def __init__(self):

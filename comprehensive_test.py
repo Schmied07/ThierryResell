@@ -8,7 +8,7 @@ import httpx
 import json
 from datetime import datetime
 
-BACKEND_URL = "https://keepa-google-sync.preview.emergentagent.com/api"
+BACKEND_URL = "https://catalog-fix-6.preview.emergentagent.com/api"
 
 async def comprehensive_test():
     """Run comprehensive tests covering all aspects of the Google Suppliers feature"""
