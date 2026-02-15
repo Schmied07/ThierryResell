@@ -1710,6 +1710,7 @@ async def compare_catalog_product(
         'supplier_price_eur': supplier_price,
         'amazon_price_eur': amazon_price,
         'google_lowest_price_eur': google_lowest_price,
+        'google_suppliers_results': google_suppliers if google_suppliers else None,  # All Google suppliers
         # Comparison
         'cheapest_source': cheapest_source,
         'cheapest_buy_price_eur': cheapest_buy_price,
