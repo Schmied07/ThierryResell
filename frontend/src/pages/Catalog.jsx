@@ -649,73 +649,214 @@ const Catalog = () => {
                 {/* Step 2: Column Mapping */}
                 {importStep === 2 && previewData && (
                   <>
-                    {/* Mapping Interface */}
-                    <div className="bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-lg p-5 border border-blue-500/20">
-                      <div className="flex items-center gap-2 mb-4">
-                        <MapPin className="w-5 h-5 text-blue-400" />
-                        <h4 className="text-white font-semibold">Associer les colonnes du fichier aux champs</h4>
-                        <Badge className="bg-zinc-700 text-zinc-300 text-xs">
-                          {previewData.total_rows} lignes détectées
+                    {/* Instructions Banner */}
+                    <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-lg p-4 mb-6">
+                      <div className="flex items-start gap-3">
+                        <Info className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+                        <div>
+                          <h4 className="text-white font-semibold mb-1">Comment mapper les colonnes ?</h4>
+                          <ol className="text-zinc-300 text-sm space-y-1">
+                            <li>1️⃣ Cliquez sur une <strong>colonne de votre fichier</strong> (à gauche)</li>
+                            <li>2️⃣ Puis cliquez sur le <strong>champ correspondant</strong> (à droite)</li>
+                            <li>3️⃣ La connexion se crée automatiquement ✨</li>
+                          </ol>
+                        </div>
+                        <Badge className="bg-zinc-700 text-zinc-300 text-xs ml-auto">
+                          {previewData.total_rows} lignes
                         </Badge>
                       </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                        {/* Required fields */}
-                        {['GTIN', 'Name', 'Category', 'Brand', 'Price'].map(field => {
-                          const labels = {
-                            'GTIN': { label: 'Code EAN / GTIN', icon: '🔢', desc: 'Code-barres du produit' },
-                            'Name': { label: 'Nom du produit', icon: '📝', desc: 'Nom/désignation' },
-                            'Category': { label: 'Catégorie', icon: '📁', desc: 'Catégorie du produit' },
-                            'Brand': { label: 'Marque', icon: '🏷️', desc: 'Marque/fabricant' },
-                            'Price': { label: 'Prix fournisseur', icon: '💰', desc: 'Prix en devise source' }
-                          };
-                          const info = labels[field];
-                          const isMapped = !!columnMapping[field];
-                          
-                          return (
-                            <div key={field} className={`rounded-lg p-3 border ${isMapped ? 'bg-green-500/5 border-green-500/30' : 'bg-red-500/5 border-red-500/30'}`}>
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className="text-lg">{info.icon}</span>
-                                <div>
-                                  <p className="text-white text-sm font-semibold">{info.label} <span className="text-red-400">*</span></p>
-                                  <p className="text-zinc-500 text-xs">{info.desc}</p>
-                                </div>
-                                {isMapped && <CheckCircle className="w-4 h-4 text-green-400 ml-auto" />}
-                              </div>
-                              <select
-                                value={columnMapping[field] || ''}
-                                onChange={(e) => handleMappingChange(field, e.target.value)}
-                                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-white text-sm focus:border-blue-500 focus:outline-none"
-                              >
-                                <option value="">-- Sélectionner une colonne --</option>
-                                {previewData.columns.map(col => (
-                                  <option key={col} value={col}>{col}</option>
-                                ))}
-                              </select>
-                            </div>
-                          );
-                        })}
+                    </div>
+
+                    {/* Visual Mapping Interface */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                      {/* LEFT: File Columns */}
+                      <div className="bg-zinc-900/50 border border-zinc-700 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-4">
+                          <FileSpreadsheet className="w-5 h-5 text-blue-400" />
+                          <h4 className="text-white font-semibold">Colonnes du fichier</h4>
+                          <Badge className="bg-blue-500/20 text-blue-300 text-xs">
+                            {previewData.columns.length} colonnes
+                          </Badge>
+                        </div>
                         
-                        {/* Optional Image field */}
-                        <div className={`rounded-lg p-3 border ${columnMapping['Image'] ? 'bg-green-500/5 border-green-500/30' : 'bg-zinc-800/30 border-zinc-700'}`}>
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-lg">🖼️</span>
-                            <div>
-                              <p className="text-white text-sm font-semibold">Image <span className="text-zinc-500 text-xs font-normal">(optionnel)</span></p>
-                              <p className="text-zinc-500 text-xs">URL de l'image - active la recherche Google par image</p>
+                        <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
+                          {previewData.columns.map((col) => {
+                            const isSelected = selectedFileColumn === col;
+                            const mappedTo = Object.entries(columnMapping).find(([, v]) => v === col)?.[0];
+                            const sampleValue = previewData.sample_data[0]?.[col];
+                            
+                            return (
+                              <button
+                                key={col}
+                                onClick={() => handleFileColumnClick(col)}
+                                className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                                  isSelected
+                                    ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20'
+                                    : mappedTo
+                                    ? 'border-green-500/30 bg-green-500/5 hover:border-green-500/50'
+                                    : 'border-zinc-700 bg-zinc-800/50 hover:border-zinc-600'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="text-white font-medium truncate">{col}</span>
+                                      {mappedTo && (
+                                        <Badge className="bg-green-500/20 text-green-300 text-[10px] px-1.5 py-0.5 shrink-0">
+                                          → {mappedTo}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {sampleValue && (
+                                      <p className="text-zinc-400 text-xs truncate">
+                                        Ex: {sampleValue}
+                                      </p>
+                                    )}
+                                  </div>
+                                  {isSelected && (
+                                    <div className="shrink-0 w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* RIGHT: App Fields */}
+                      <div className="bg-zinc-900/50 border border-zinc-700 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Columns className="w-5 h-5 text-purple-400" />
+                          <h4 className="text-white font-semibold">Champs de l'application</h4>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          {/* Required Fields Section */}
+                          <div>
+                            <p className="text-zinc-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-2">
+                              <span className="text-red-400">●</span> Champs requis
+                            </p>
+                            <div className="space-y-2">
+                              {[
+                                { field: 'GTIN', label: 'Code EAN / GTIN', icon: '🔢', desc: 'Code-barres produit' },
+                                { field: 'Name', label: 'Nom du produit', icon: '📝', desc: 'Nom/désignation' },
+                                { field: 'Category', label: 'Catégorie', icon: '📁', desc: 'Catégorie' },
+                                { field: 'Brand', label: 'Marque', icon: '🏷️', desc: 'Marque/fabricant' },
+                                { field: 'Price', label: 'Prix fournisseur', icon: '💰', desc: 'Prix en devise' }
+                              ].map(({ field, label, icon, desc }) => {
+                                const mappedColumn = columnMapping[field];
+                                const isSelected = selectedAppField === field;
+                                
+                                return (
+                                  <button
+                                    key={field}
+                                    onClick={() => handleAppFieldClick(field)}
+                                    className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                                      isSelected
+                                        ? 'border-purple-500 bg-purple-500/10 shadow-lg shadow-purple-500/20'
+                                        : mappedColumn
+                                        ? 'border-green-500/30 bg-green-500/5 hover:border-green-500/50'
+                                        : 'border-red-500/30 bg-red-500/5 hover:border-red-500/40'
+                                    }`}
+                                  >
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="flex items-start gap-2 flex-1 min-w-0">
+                                        <span className="text-xl leading-none">{icon}</span>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-white text-sm font-semibold mb-0.5 flex items-center gap-1.5">
+                                            {label}
+                                            <span className="text-red-400 text-xs">*</span>
+                                          </p>
+                                          <p className="text-zinc-500 text-xs">{desc}</p>
+                                          {mappedColumn && (
+                                            <div className="flex items-center gap-2 mt-1.5">
+                                              <Badge className="bg-green-500/20 text-green-300 text-[10px] px-1.5 py-0.5">
+                                                ← {mappedColumn}
+                                              </Badge>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleRemoveMapping(field);
+                                                }}
+                                                className="text-red-400 hover:text-red-300 transition-colors"
+                                              >
+                                                <X className="w-3 h-3" />
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                      {mappedColumn ? (
+                                        <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+                                      ) : (
+                                        <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                                      )}
+                                    </div>
+                                  </button>
+                                );
+                              })}
                             </div>
-                            {columnMapping['Image'] && <CheckCircle className="w-4 h-4 text-green-400 ml-auto" />}
                           </div>
-                          <select
-                            value={columnMapping['Image'] || ''}
-                            onChange={(e) => handleMappingChange('Image', e.target.value)}
-                            className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-white text-sm focus:border-blue-500 focus:outline-none"
-                          >
-                            <option value="">-- Aucune colonne --</option>
-                            {previewData.columns.map(col => (
-                              <option key={col} value={col}>{col}</option>
-                            ))}
-                          </select>
+
+                          {/* Optional Fields Section */}
+                          <div>
+                            <p className="text-zinc-400 text-xs uppercase tracking-wide mb-2 flex items-center gap-2">
+                              <span className="text-zinc-600">●</span> Champ optionnel
+                            </p>
+                            <div className="space-y-2">
+                              {[
+                                { field: 'Image', label: 'Image URL', icon: '🖼️', desc: 'URL image - recherche Google par image' }
+                              ].map(({ field, label, icon, desc }) => {
+                                const mappedColumn = columnMapping[field];
+                                const isSelected = selectedAppField === field;
+                                
+                                return (
+                                  <button
+                                    key={field}
+                                    onClick={() => handleAppFieldClick(field)}
+                                    className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                                      isSelected
+                                        ? 'border-purple-500 bg-purple-500/10 shadow-lg shadow-purple-500/20'
+                                        : mappedColumn
+                                        ? 'border-green-500/30 bg-green-500/5 hover:border-green-500/50'
+                                        : 'border-zinc-700 bg-zinc-800/50 hover:border-zinc-600'
+                                    }`}
+                                  >
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="flex items-start gap-2 flex-1 min-w-0">
+                                        <span className="text-xl leading-none">{icon}</span>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-white text-sm font-semibold mb-0.5">
+                                            {label}
+                                          </p>
+                                          <p className="text-zinc-500 text-xs">{desc}</p>
+                                          {mappedColumn && (
+                                            <div className="flex items-center gap-2 mt-1.5">
+                                              <Badge className="bg-green-500/20 text-green-300 text-[10px] px-1.5 py-0.5">
+                                                ← {mappedColumn}
+                                              </Badge>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleRemoveMapping(field);
+                                                }}
+                                                className="text-red-400 hover:text-red-300 transition-colors"
+                                              >
+                                                <X className="w-3 h-3" />
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                      {mappedColumn && (
+                                        <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+                                      )}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
