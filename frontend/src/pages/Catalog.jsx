@@ -729,7 +729,7 @@ const Catalog = () => {
                                 {/* Expanded Detail Row */}
                                 {isExpanded && product.last_compared_at && (
                                   <TableRow key={`${product.id}-detail`} className="border-zinc-800 bg-zinc-900/50">
-                                    <TableCell colSpan={9} className="p-0">
+                                    <TableCell colSpan={11} className="p-0">
                                       <ProductComparisonDetail product={product} compareResult={compareResult} />
                                     </TableCell>
                                   </TableRow>
