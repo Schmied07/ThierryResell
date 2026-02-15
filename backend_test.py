@@ -338,6 +338,10 @@ class BackendTester:
         print("\n2. Authentication")
         auth_ok = self.authenticate() if health_ok else False
         
+        # Test 2.5: Cleanup existing catalog
+        print("\n2.5. Cleaning up existing catalog")
+        cleanup_ok = self.cleanup_catalog() if auth_ok else False
+        
         # Test 3: Catalog Preview
         print("\n3. Testing Catalog Preview Endpoint")
         preview_ok = self.test_catalog_preview() if auth_ok else False
