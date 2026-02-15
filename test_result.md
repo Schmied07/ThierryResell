@@ -111,7 +111,7 @@ backend:
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: "NA"
         agent: "main"
@@ -119,6 +119,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "Compare endpoint working correctly. POST /api/catalog/compare/{product_id} returns 404 for nonexistent products as expected. POST /api/catalog/compare-batch with empty list works correctly. Mock data functionality confirmed working when no API keys configured."
+      - working: "NA"
+        agent: "main"
+        comment: "BUGFIX: Changed Keepa API from /search?term=EAN (keyword search) to /product?code=EAN (barcode lookup). Added 3 price extraction methods: stats.current, csv price history, buyBoxPrice. Verified with real Keepa API - Elmex Junior found correctly (ASIN B0D5D9CGFM, price 3.60 EUR). Also improved text search endpoint with two-step search (search for ASIN, then product details)."
 
   - task: "Catalog stats endpoint - updated with new margin fields"
     implemented: true
