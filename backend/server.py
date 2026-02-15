@@ -1534,76 +1534,148 @@ async def get_keepa_product(asin: str, user: dict = Depends(get_current_user)):
 
 # ==================== CATALOG ENDPOINTS ====================
 
-@api_router.post("/catalog/import")
-async def import_catalog(
+def read_excel_dataframe(contents: bytes) -> pd.DataFrame:
+    """Read Excel file and detect header row, returns DataFrame"""
+    df = None
+    for header_row in range(20):
+        try:
+            temp_df = pd.read_excel(io.BytesIO(contents), header=header_row)
+            col_str = ' '.join(str(col) for col in temp_df.columns)
+            
+            # Check if columns look like header names (not numbers/dates)
+            has_text_cols = any(isinstance(col, str) and not col.startswith('Unnamed') for col in temp_df.columns)
+            
+            if len(temp_df.columns) > 2 and has_text_cols:
+                df = temp_df
+                break
+            
+            # Check if any of the first few rows contain header-like data
+            for row_idx in range(min(5, len(temp_df))):
+                row_vals = temp_df.iloc[row_idx]
+                row_str = ' '.join(str(v) for v in row_vals.values if pd.notna(v))
+                # Look for common header keywords
+                if any(kw in row_str.lower() for kw in ['gtin', 'ean', 'name', 'brand', 'price', 'category', 'nom', 'marque', 'prix']):
+                    new_columns = [str(val) if pd.notna(val) else f'Unnamed_{i}' for i, val in enumerate(row_vals.values)]
+                    df = temp_df.iloc[row_idx + 1:].copy()
+                    df.columns = new_columns
+                    break
+            if df is not None:
+                break
+        except Exception:
+            continue
+    
+    if df is None:
+        # Fallback: just read with first row as header
+        df = pd.read_excel(io.BytesIO(contents), header=0)
+    
+    df.columns = [str(col).strip() for col in df.columns]
+    return df
+
+
+def auto_detect_column_mapping(columns: list) -> dict:
+    """Auto-detect column mapping from column names"""
+    column_mapping = {}
+    for col in columns:
+        col_lower = col.lower()
+        if 'GTIN' not in column_mapping and ('gtin' in col_lower or 'ean' in col_lower or 'barcode' in col_lower):
+            column_mapping['GTIN'] = col
+        elif 'Name' not in column_mapping and ('name' in col_lower or 'nom' in col_lower or 'désignation' in col_lower or 'designation' in col_lower or 'produit' in col_lower) and 'brand' not in col_lower and 'file' not in col_lower:
+            column_mapping['Name'] = col
+        elif 'Category' not in column_mapping and ('category' in col_lower or 'catégorie' in col_lower or 'categorie' in col_lower):
+            column_mapping['Category'] = col
+        elif 'Brand' not in column_mapping and ('brand' in col_lower or 'marque' in col_lower):
+            column_mapping['Brand'] = col
+        elif 'Price' not in column_mapping and ('price' in col_lower or 'prix' in col_lower or 'lowest' in col_lower or '£' in col or '€' in col):
+            column_mapping['Price'] = col
+        elif 'Image' not in column_mapping and ('image' in col_lower or 'photo' in col_lower or 'img' in col_lower or 'picture' in col_lower or 'thumbnail' in col_lower):
+            column_mapping['Image'] = col
+    return column_mapping
+
+
+@api_router.post("/catalog/preview")
+async def preview_catalog(
     file: UploadFile = File(...),
     user: dict = Depends(get_current_user)
 ):
-    """Import product catalog from Excel file"""
+    """Preview catalog Excel file: return columns, sample data, and auto-detected mapping"""
     if not file.filename.endswith(('.xlsx', '.xls')):
         raise HTTPException(status_code=400, detail="Only Excel files (.xlsx, .xls) are supported")
     
     try:
+        contents = await file.read()
+        logger.info(f"Catalog preview: received file {file.filename}, size={len(contents)} bytes")
+        
+        df = read_excel_dataframe(contents)
+        
+        columns = list(df.columns)
+        logger.info(f"Preview columns: {columns}")
+        
+        # Get sample data (first 5 rows)
+        sample_rows = []
+        for _, row in df.head(5).iterrows():
+            row_data = {}
+            for col in columns:
+                val = row[col]
+                if pd.isna(val):
+                    row_data[col] = None
+                else:
+                    row_data[col] = str(val)
+            sample_rows.append(row_data)
+        
+        # Auto-detect column mapping
+        suggested_mapping = auto_detect_column_mapping(columns)
+        
+        return {
+            'columns': columns,
+            'sample_data': sample_rows,
+            'total_rows': len(df),
+            'suggested_mapping': suggested_mapping,
+            'required_fields': ['GTIN', 'Name', 'Category', 'Brand', 'Price'],
+            'optional_fields': ['Image']
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Catalog preview error: {e}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la prévisualisation : {str(e)}")
+
+
+@api_router.post("/catalog/import")
+async def import_catalog(
+    file: UploadFile = File(...),
+    column_mapping_json: Optional[str] = Form(None),
+    user: dict = Depends(get_current_user)
+):
+    """Import product catalog from Excel file with optional manual column mapping"""
+    if not file.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="Only Excel files (.xlsx, .xls) are supported")
+    
+    try:
+        import json as json_module
+        
         # Read Excel file
         contents = await file.read()
         logger.info(f"Catalog import: received file {file.filename}, size={len(contents)} bytes")
         
-        # Try different header row positions to find the correct structure
-        df = None
-        for header_row in range(20):  # Try up to 20 rows for header detection
+        df = read_excel_dataframe(contents)
+        
+        # Use manual column mapping if provided, otherwise auto-detect
+        if column_mapping_json:
             try:
-                temp_df = pd.read_excel(io.BytesIO(contents), header=header_row)
-                # Check if this looks like the right header row
-                col_str = ' '.join(str(col) for col in temp_df.columns)
-                logger.info(f"Trying header_row={header_row}, columns: {temp_df.columns.tolist()[:5]}")
-                if len(temp_df.columns) > 3 and ('GTIN' in col_str or 'EAN' in col_str):
-                    df = temp_df
-                    logger.info(f"Found header at row {header_row}")
-                    break
-                # Check if any of the first few rows contain the headers
-                for row_idx in range(min(5, len(temp_df))):
-                    row_vals = temp_df.iloc[row_idx]
-                    row_str = ' '.join(str(v) for v in row_vals.values if pd.notna(v))
-                    if 'GTIN' in row_str or 'EAN' in row_str:
-                        # Use this row as headers
-                        new_columns = [str(val) if pd.notna(val) else f'Unnamed_{i}' for i, val in enumerate(row_vals.values)]
-                        df = temp_df.iloc[row_idx + 1:].copy()
-                        df.columns = new_columns
-                        logger.info(f"Found header in data row {row_idx}")
-                        break
-                if df is not None:
-                    break
-            except Exception as e:
-                logger.warning(f"Error trying header_row={header_row}: {e}")
-                continue
-        
-        if df is None:
-            logger.error("Could not find GTIN/EAN columns in file")
-            raise HTTPException(status_code=400, detail="Impossible de trouver les colonnes GTIN/EAN dans le fichier. Vérifiez que le fichier contient bien des colonnes GTIN, Name, Category, Brand et un prix.")
-        
-        # Clean up column names and find required columns
-        df.columns = [str(col).strip() for col in df.columns]
-        
-        # Map possible column variations
-        column_mapping = {}
-        for col in df.columns:
-            col_lower = col.lower()
-            if 'gtin' in col_lower or 'ean' in col_lower or 'barcode' in col_lower:
-                column_mapping['GTIN'] = col
-            elif 'name' in col_lower and 'brand' not in col_lower and 'file' not in col_lower:
-                column_mapping['Name'] = col
-            elif 'category' in col_lower or 'catégorie' in col_lower:
-                column_mapping['Category'] = col
-            elif 'brand' in col_lower or 'marque' in col_lower:
-                column_mapping['Brand'] = col
-            elif 'Price' not in column_mapping and ('price' in col_lower or 'prix' in col_lower or 'lowest' in col_lower or '£' in col or '€' in col):
-                column_mapping['Price'] = col
+                column_mapping = json_module.loads(column_mapping_json)
+                logger.info(f"Using manual column mapping: {column_mapping}")
+            except (json_module.JSONDecodeError, TypeError):
+                logger.warning(f"Invalid column_mapping_json, falling back to auto-detect")
+                column_mapping = auto_detect_column_mapping(list(df.columns))
+        else:
+            column_mapping = auto_detect_column_mapping(list(df.columns))
         
         logger.info(f"Column mapping: {column_mapping}")
         
         # Validate required columns exist
         required_fields = ['GTIN', 'Name', 'Category', 'Brand', 'Price']
-        missing_fields = [field for field in required_fields if field not in column_mapping]
+        missing_fields = [field for field in required_fields if field not in column_mapping or not column_mapping[field]]
         if missing_fields:
             available_cols = list(df.columns)
             logger.error(f"Missing columns: {missing_fields}. Available: {available_cols}")
@@ -1611,6 +1683,14 @@ async def import_catalog(
                 status_code=400,
                 detail=f"Colonnes manquantes : {', '.join(missing_fields)}. Colonnes disponibles : {', '.join(available_cols)}"
             )
+        
+        # Validate that mapped columns actually exist in the dataframe
+        for field, col_name in column_mapping.items():
+            if col_name and col_name not in df.columns:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"La colonne '{col_name}' mappée pour '{field}' n'existe pas dans le fichier. Colonnes disponibles : {', '.join(df.columns)}"
+                )
         
         # Get exchange rate
         exchange_rate = await get_exchange_rate()
@@ -1671,6 +1751,13 @@ async def import_catalog(
                 else:
                     product_link = str(product_link)
                 
+                # Get image URL if mapped
+                image_url = None
+                if column_mapping.get('Image'):
+                    raw_image = row.get(column_mapping['Image'], '')
+                    if pd.notna(raw_image) and str(raw_image).strip() != '' and str(raw_image).strip() != 'nan':
+                        image_url = str(raw_image).strip()
+                
                 product = {
                     'id': str(uuid.uuid4()),
                     'user_id': user['id'],
@@ -1683,6 +1770,7 @@ async def import_catalog(
                     'inventory': inventory,
                     'number_of_offers': num_offers,
                     'product_link': product_link,
+                    'image_url': image_url,
                     'amazon_price_eur': None,
                     'google_price_eur': None,
                     'best_price_eur': None,
