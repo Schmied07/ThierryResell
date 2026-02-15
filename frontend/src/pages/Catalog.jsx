@@ -40,6 +40,12 @@ const Catalog = () => {
   const [expandedProduct, setExpandedProduct] = useState(null);
   const [compareResult, setCompareResult] = useState(null);
   
+  // Column Mapping state
+  const [importStep, setImportStep] = useState(1); // 1=upload, 2=mapping
+  const [previewData, setPreviewData] = useState(null); // columns, sample_data, suggested_mapping
+  const [columnMapping, setColumnMapping] = useState({});
+  const [previewing, setPreviewing] = useState(false);
+  
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBrand, setSelectedBrand] = useState("");
