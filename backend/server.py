@@ -1956,13 +1956,32 @@ async def import_catalog(
                     if pd.notna(raw_image) and str(raw_image).strip() != '' and str(raw_image).strip() != 'nan':
                         image_url = str(raw_image).strip()
                 
+                # Get optional fields with defaults
+                product_name = 'Non spécifié'
+                if column_mapping.get('Name') and column_mapping['Name'] in row.index:
+                    val = row[column_mapping['Name']]
+                    if pd.notna(val) and str(val).strip() and str(val).strip() != 'nan':
+                        product_name = str(val).strip()
+                
+                product_category = 'Non spécifié'
+                if column_mapping.get('Category') and column_mapping['Category'] in row.index:
+                    val = row[column_mapping['Category']]
+                    if pd.notna(val) and str(val).strip() and str(val).strip() != 'nan':
+                        product_category = str(val).strip()
+                
+                product_brand = 'Non spécifié'
+                if column_mapping.get('Brand') and column_mapping['Brand'] in row.index:
+                    val = row[column_mapping['Brand']]
+                    if pd.notna(val) and str(val).strip() and str(val).strip() != 'nan':
+                        product_brand = str(val).strip()
+                
                 product = {
                     'id': str(uuid.uuid4()),
                     'user_id': user['id'],
                     'gtin': gtin,
-                    'name': str(row[column_mapping['Name']]),
-                    'category': str(row[column_mapping['Category']]),
-                    'brand': str(row[column_mapping['Brand']]),
+                    'name': product_name,
+                    'category': product_category,
+                    'brand': product_brand,
                     'supplier_price_gbp': price_gbp,
                     'supplier_price_eur': price_eur,
                     'inventory': inventory,
