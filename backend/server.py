@@ -1449,35 +1449,60 @@ async def compare_catalog_product(
                 
                 # Step 3: Extract price from found product
                 if keepa_product:
-                    # Method 1: Try stats.current array
-                    # Index 0 = Amazon price, Index 1 = New 3rd party, Index 2 = Used
-                    # Keepa prices are in cents, -1 means no data
+                    # Keepa price indices:
+                    # 0 = Amazon direct, 1 = New 3rd party, 2 = Used, 3 = Sales Rank,
+                    # 4 = New FBA (3rd party via Amazon FBA), 5 = Lightning Deal, etc.
+                    # Prices are in cents, -1 or -2 means no data
                     stats = keepa_product.get('stats', {})
                     current_prices = stats.get('current', [])
                     
-                    if current_prices and len(current_prices) > 0:
-                        # Try Amazon price first (index 0)
-                        if current_prices[0] is not None and current_prices[0] > 0:
-                            amazon_price = current_prices[0] / 100.0
-                        # Fallback to 3rd party new price (index 1)
-                        elif len(current_prices) > 1 and current_prices[1] is not None and current_prices[1] > 0:
-                            amazon_price = current_prices[1] / 100.0
+                    # Priority: Amazon (0) > New FBA (4) > New 3rd party (1) > buyBoxPrice
+                    price_indices_to_try = [0, 4, 1, 10, 7]  # Amazon, New FBA, New, Amazon Warehouse, Buy Box
                     
-                    # Method 2: If stats.current didn't work, try csv price history
-                    # csv[0] = Amazon price history, csv[1] = New 3rd party history
+                    for idx in price_indices_to_try:
+                        if current_prices and len(current_prices) > idx:
+                            price_val = current_prices[idx]
+                            if price_val is not None and price_val > 0:
+                                amazon_price = price_val / 100.0
+                                logger.info(f"Keepa: found price €{amazon_price} at index {idx}")
+                                break
+                    
+                    # Method 2: Try buyBoxPrice
+                    if amazon_price is None:
+                        buy_box = stats.get('buyBoxPrice')
+                        if buy_box is not None and buy_box > 0:
+                            amazon_price = buy_box / 100.0
+                            logger.info(f"Keepa: found buyBoxPrice €{amazon_price}")
+                    
+                    # Method 3: Try avg30 (30-day average) as fallback
+                    if amazon_price is None:
+                        avg30 = stats.get('avg30', [])
+                        for idx in price_indices_to_try:
+                            if avg30 and len(avg30) > idx:
+                                price_val = avg30[idx]
+                                if price_val is not None and price_val > 0:
+                                    amazon_price = price_val / 100.0
+                                    logger.info(f"Keepa: found avg30 price €{amazon_price} at index {idx}")
+                                    break
+                    
+                    # Method 4: Try csv price history
                     if amazon_price is None:
                         csv_data = keepa_product.get('csv', [])
-                        # Try Amazon csv (index 0) - get last valid price
-                        if csv_data and len(csv_data) > 0 and csv_data[0]:
-                            prices_array = csv_data[0]
-                            # csv arrays are [timestamp, price, timestamp, price, ...]
-                            # Walk backwards to find the last valid price
-                            for i in range(len(prices_array) - 1, 0, -2):
-                                if prices_array[i] is not None and prices_array[i] > 0:
-                                    amazon_price = prices_array[i] / 100.0
-                                    break
-                        # Try New 3rd party csv (index 1) if Amazon csv didn't work
-                        if amazon_price is None and csv_data and len(csv_data) > 1 and csv_data[1]:
+                        # Try different csv indices
+                        for csv_idx in [0, 4, 1]:  # Amazon, New FBA, New 3rd party
+                            if csv_data and len(csv_data) > csv_idx and csv_data[csv_idx]:
+                                prices_array = csv_data[csv_idx]
+                                # csv arrays are [timestamp, price, timestamp, price, ...]
+                                # Walk backwards to find the last valid price
+                                for i in range(len(prices_array) - 1, 0, -2):
+                                    if prices_array[i] is not None and prices_array[i] > 0:
+                                        amazon_price = prices_array[i] / 100.0
+                                        logger.info(f"Keepa: found csv price €{amazon_price} at csv index {csv_idx}")
+                                        break
+                            if amazon_price is not None:
+                                break
+                    
+                    logger.info(f"Keepa final Amazon price for {product['name']}: €{amazon_price}")
                             prices_array = csv_data[1]
                             for i in range(len(prices_array) - 1, 0, -2):
                                 if prices_array[i] is not None and prices_array[i] > 0:
