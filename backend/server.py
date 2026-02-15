@@ -2659,6 +2659,7 @@ async def export_catalog(
         'name': 'Nom du produit',
         'brand': 'Marque',
         'category': 'Catégorie',
+        'image_url': 'Image URL',
         'supplier_price_gbp': 'Prix fournisseur (£)',
         'supplier_price_eur': 'Prix fournisseur (€)',
         'amazon_price_eur': 'Prix Amazon (€)',
