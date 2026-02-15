@@ -414,7 +414,7 @@ if __name__ == "__main__":
     # Exit with error code if any critical tests failed
     if not results["health"] or not results["authentication"]:
         sys.exit(1)
-    elif not results["preview"] or not results["import"]:
-        sys.exit(2)  # Catalog-specific failures
+    elif not results["preview"] or not results["minimal_import"]:
+        sys.exit(2)  # Flexible catalog import failures
     else:
         sys.exit(0)  # All tests passed
