@@ -508,75 +508,270 @@ const Catalog = () => {
           <TabsContent value="import">
             <Card className="bg-zinc-900/50 border-zinc-800">
               <CardHeader>
-                <CardTitle className="text-white">Importer un catalogue Excel</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-white flex items-center gap-2">
+                    {importStep === 1 ? (
+                      <><Upload className="w-5 h-5" /> Importer un catalogue Excel</>
+                    ) : (
+                      <><Columns className="w-5 h-5" /> Mapper les colonnes</>
+                    )}
+                  </CardTitle>
+                  {importStep === 2 && (
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                        Étape 2/2
+                      </Badge>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={resetImport}
+                        className="border-zinc-700 text-zinc-300"
+                      >
+                        <ArrowLeft className="w-4 h-4 mr-1" />
+                        Retour
+                      </Button>
+                    </div>
+                  )}
+                  {importStep === 1 && file && (
+                    <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                      Étape 1/2
+                    </Badge>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="border-2 border-dashed border-zinc-700 rounded-lg p-12 text-center">
-                  <FileSpreadsheet className="w-16 h-16 text-zinc-500 mx-auto mb-4" />
-                  <p className="text-zinc-400 mb-4">
-                    Glissez-déposez votre fichier Excel ou cliquez pour sélectionner
-                  </p>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                  />
-                  <Button
-                    onClick={() => fileInputRef.current?.click()}
-                    variant="outline"
-                    className="border-zinc-700 text-white"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Sélectionner un fichier
-                  </Button>
-                </div>
-
-                {file && (
-                  <div className="bg-zinc-800/50 p-4 rounded-lg flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <FileSpreadsheet className="w-8 h-8 text-green-400" />
-                      <div>
-                        <p className="text-white font-medium">{file.name}</p>
-                        <p className="text-zinc-400 text-sm">
-                          {(file.size / 1024).toFixed(2)} KB
-                        </p>
-                      </div>
+                {/* Step 1: File Upload */}
+                {importStep === 1 && (
+                  <>
+                    <div className="border-2 border-dashed border-zinc-700 rounded-lg p-12 text-center">
+                      <FileSpreadsheet className="w-16 h-16 text-zinc-500 mx-auto mb-4" />
+                      <p className="text-zinc-400 mb-4">
+                        Glissez-déposez votre fichier Excel ou cliquez pour sélectionner
+                      </p>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".xlsx,.xls"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                      <Button
+                        onClick={() => fileInputRef.current?.click()}
+                        variant="outline"
+                        className="border-zinc-700 text-white"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Sélectionner un fichier
+                      </Button>
                     </div>
-                    <Button
-                      onClick={handleImport}
-                      disabled={uploading}
-                      className="bg-gradient-to-r from-blue-500 to-purple-500"
-                    >
-                      {uploading ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Import en cours...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-4 h-4 mr-2" />
-                          Importer
-                        </>
-                      )}
-                    </Button>
-                  </div>
+
+                    {file && (
+                      <div className="bg-zinc-800/50 p-4 rounded-lg flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <FileSpreadsheet className="w-8 h-8 text-green-400" />
+                          <div>
+                            <p className="text-white font-medium">{file.name}</p>
+                            <p className="text-zinc-400 text-sm">
+                              {(file.size / 1024).toFixed(2)} KB
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          onClick={handlePreview}
+                          disabled={previewing}
+                          className="bg-gradient-to-r from-blue-500 to-purple-500"
+                        >
+                          {previewing ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Analyse en cours...
+                            </>
+                          ) : (
+                            <>
+                              <Columns className="w-4 h-4 mr-2" />
+                              Analyser et mapper les colonnes
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+
+                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                      <h4 className="text-blue-400 font-semibold mb-2">Format attendu</h4>
+                      <p className="text-zinc-400 text-sm mb-2">
+                        Votre fichier Excel peut contenir n'importe quelles colonnes. Vous pourrez les mapper aux champs requis à l'étape suivante.
+                      </p>
+                      <ul className="text-zinc-400 text-sm space-y-1 list-disc list-inside">
+                        <li><strong>GTIN/EAN</strong> - Code-barres du produit (requis)</li>
+                        <li><strong>Nom</strong> - Nom du produit (requis)</li>
+                        <li><strong>Catégorie</strong> - Catégorie du produit (requis)</li>
+                        <li><strong>Marque</strong> - Marque du produit (requis)</li>
+                        <li><strong>Prix</strong> - Prix fournisseur (requis)</li>
+                        <li><strong className="text-green-400">Image</strong> - URL de l'image du produit (optionnel - permet la recherche Google par image)</li>
+                      </ul>
+                    </div>
+                  </>
                 )}
 
-                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-                  <h4 className="text-blue-400 font-semibold mb-2">Format attendu</h4>
-                  <p className="text-zinc-400 text-sm mb-2">
-                    Votre fichier Excel doit contenir les colonnes suivantes :
-                  </p>
-                  <ul className="text-zinc-400 text-sm space-y-1 list-disc list-inside">
-                    <li><strong>GTIN</strong> - Code-barres EAN du produit</li>
-                    <li><strong>Name</strong> - Nom du produit</li>
-                    <li><strong>Category</strong> - Catégorie</li>
-                    <li><strong>Brand</strong> - Marque</li>
-                    <li><strong>£ Lowest Price inc. shipping</strong> - Prix en GBP</li>
-                  </ul>
-                </div>
+                {/* Step 2: Column Mapping */}
+                {importStep === 2 && previewData && (
+                  <>
+                    {/* Mapping Interface */}
+                    <div className="bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-lg p-5 border border-blue-500/20">
+                      <div className="flex items-center gap-2 mb-4">
+                        <MapPin className="w-5 h-5 text-blue-400" />
+                        <h4 className="text-white font-semibold">Associer les colonnes du fichier aux champs</h4>
+                        <Badge className="bg-zinc-700 text-zinc-300 text-xs">
+                          {previewData.total_rows} lignes détectées
+                        </Badge>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                        {/* Required fields */}
+                        {['GTIN', 'Name', 'Category', 'Brand', 'Price'].map(field => {
+                          const labels = {
+                            'GTIN': { label: 'Code EAN / GTIN', icon: '🔢', desc: 'Code-barres du produit' },
+                            'Name': { label: 'Nom du produit', icon: '📝', desc: 'Nom/désignation' },
+                            'Category': { label: 'Catégorie', icon: '📁', desc: 'Catégorie du produit' },
+                            'Brand': { label: 'Marque', icon: '🏷️', desc: 'Marque/fabricant' },
+                            'Price': { label: 'Prix fournisseur', icon: '💰', desc: 'Prix en devise source' }
+                          };
+                          const info = labels[field];
+                          const isMapped = !!columnMapping[field];
+                          
+                          return (
+                            <div key={field} className={`rounded-lg p-3 border ${isMapped ? 'bg-green-500/5 border-green-500/30' : 'bg-red-500/5 border-red-500/30'}`}>
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-lg">{info.icon}</span>
+                                <div>
+                                  <p className="text-white text-sm font-semibold">{info.label} <span className="text-red-400">*</span></p>
+                                  <p className="text-zinc-500 text-xs">{info.desc}</p>
+                                </div>
+                                {isMapped && <CheckCircle className="w-4 h-4 text-green-400 ml-auto" />}
+                              </div>
+                              <select
+                                value={columnMapping[field] || ''}
+                                onChange={(e) => handleMappingChange(field, e.target.value)}
+                                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-white text-sm focus:border-blue-500 focus:outline-none"
+                              >
+                                <option value="">-- Sélectionner une colonne --</option>
+                                {previewData.columns.map(col => (
+                                  <option key={col} value={col}>{col}</option>
+                                ))}
+                              </select>
+                            </div>
+                          );
+                        })}
+                        
+                        {/* Optional Image field */}
+                        <div className={`rounded-lg p-3 border ${columnMapping['Image'] ? 'bg-green-500/5 border-green-500/30' : 'bg-zinc-800/30 border-zinc-700'}`}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-lg">🖼️</span>
+                            <div>
+                              <p className="text-white text-sm font-semibold">Image <span className="text-zinc-500 text-xs font-normal">(optionnel)</span></p>
+                              <p className="text-zinc-500 text-xs">URL de l'image - active la recherche Google par image</p>
+                            </div>
+                            {columnMapping['Image'] && <CheckCircle className="w-4 h-4 text-green-400 ml-auto" />}
+                          </div>
+                          <select
+                            value={columnMapping['Image'] || ''}
+                            onChange={(e) => handleMappingChange('Image', e.target.value)}
+                            className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-white text-sm focus:border-blue-500 focus:outline-none"
+                          >
+                            <option value="">-- Aucune colonne --</option>
+                            {previewData.columns.map(col => (
+                              <option key={col} value={col}>{col}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Data Preview Table */}
+                    <div className="bg-zinc-800/30 rounded-lg border border-zinc-700 overflow-hidden">
+                      <div className="flex items-center gap-2 p-3 bg-zinc-800/50 border-b border-zinc-700">
+                        <Search className="w-4 h-4 text-zinc-400" />
+                        <h4 className="text-zinc-300 font-semibold text-sm">Aperçu des données (5 premières lignes)</h4>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-zinc-800/80">
+                              {previewData.columns.map(col => {
+                                // Check if this column is mapped to any field
+                                const mappedField = Object.entries(columnMapping).find(([, v]) => v === col)?.[0];
+                                return (
+                                  <th key={col} className={`px-3 py-2 text-left text-xs font-medium whitespace-nowrap ${
+                                    mappedField ? 'text-green-400 bg-green-500/5' : 'text-zinc-500'
+                                  }`}>
+                                    {col}
+                                    {mappedField && (
+                                      <Badge className="ml-1 bg-green-500/20 text-green-300 text-[10px] px-1 py-0">
+                                        {mappedField}
+                                      </Badge>
+                                    )}
+                                  </th>
+                                );
+                              })}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {previewData.sample_data.map((row, idx) => (
+                              <tr key={idx} className="border-t border-zinc-700/50">
+                                {previewData.columns.map(col => {
+                                  const mappedField = Object.entries(columnMapping).find(([, v]) => v === col)?.[0];
+                                  const cellValue = row[col];
+                                  const isImage = mappedField === 'Image' && cellValue && (cellValue.startsWith('http') || cellValue.startsWith('//'));
+                                  return (
+                                    <td key={col} className={`px-3 py-2 text-xs whitespace-nowrap ${
+                                      mappedField ? 'text-white bg-green-500/5' : 'text-zinc-400'
+                                    }`}>
+                                      {isImage ? (
+                                        <div className="flex items-center gap-2">
+                                          <img src={cellValue} alt="" className="w-8 h-8 object-cover rounded" onError={(e) => { e.target.style.display = 'none'; }} />
+                                          <span className="truncate max-w-[120px]">{cellValue}</span>
+                                        </div>
+                                      ) : (
+                                        <span className="truncate block max-w-[200px]">{cellValue ?? '-'}</span>
+                                      )}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Import Button */}
+                    <div className="flex items-center justify-between pt-2">
+                      <div className="flex items-center gap-2 text-zinc-400 text-sm">
+                        <Info className="w-4 h-4" />
+                        <span>
+                          {Object.keys(columnMapping).filter(k => columnMapping[k]).length} colonnes mappées sur {previewData.columns.length} disponibles
+                        </span>
+                      </div>
+                      <Button
+                        onClick={handleImport}
+                        disabled={uploading || ['GTIN', 'Name', 'Category', 'Brand', 'Price'].some(f => !columnMapping[f])}
+                        className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold px-6 py-2 shadow-lg"
+                      >
+                        {uploading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Import en cours...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Importer {previewData.total_rows} produits
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
