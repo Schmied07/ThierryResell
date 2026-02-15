@@ -2067,8 +2067,8 @@ async def get_opportunities(
     limit: int = 50,
     min_margin_percentage: float = 0
 ):
-    """Get best reselling opportunities sorted by Amazon margin"""
-    # Try new field first, fallback to legacy
+    """Get best reselling opportunities sorted by opportunity score (combines margin, trend, competition, volatility)"""
+    # Find products with comparison data and opportunity score
     products = await db.catalog_products.find({
         'user_id': user['id'],
         '$or': [
@@ -2081,11 +2081,18 @@ async def get_opportunities(
                 {'margin_eur': {'$ne': None}}
             ]}
         ]
-    }, {'_id': 0}).sort('amazon_margin_eur', -1).limit(limit).to_list(limit)
+    }, {'_id': 0}).to_list(None)
+    
+    # Sort by opportunity_score (descending), fallback to amazon_margin_eur if no score
+    products_sorted = sorted(
+        products, 
+        key=lambda p: (p.get('opportunity_score', 0), p.get('amazon_margin_eur', p.get('margin_eur', 0))),
+        reverse=True
+    )[:limit]
     
     return {
-        'opportunities': products,
-        'total': len(products),
+        'opportunities': products_sorted,
+        'total': len(products_sorted),
         'amazon_fee_percentage': AMAZON_FEE_PERCENTAGE * 100
     }
 
