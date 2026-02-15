@@ -23,7 +23,7 @@ import {
   Search, Filter, TrendingUp, Package, DollarSign, 
   Loader2, CheckCircle, AlertCircle, ArrowUpDown,
   ChevronDown, ChevronUp, X, ShoppingCart, Globe, Store,
-  ArrowRight, Percent, Info
+  ArrowRight, Percent, Info, ExternalLink, Tag
 } from "lucide-react";
 import { toast } from "sonner";
 
