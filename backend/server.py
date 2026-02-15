@@ -2100,13 +2100,13 @@ async def compare_catalog_product(
                         snippet = item.get('snippet', '')
                         title = item.get('title', '')
                         
-                        # Skip Amazon URLs - we already get Amazon price from Keepa
-                        if is_amazon_url(item_url):
-                            logger.info(f"Google: skipping Amazon URL: {item_url}")
-                            continue
+                        # Check if this is an Amazon URL (no longer filtered - user wants to see Amazon results)
+                        item_is_amazon = is_amazon_url(item_url)
                         
                         # Extract supplier name from URL
                         supplier_name = extract_supplier_name_from_url(item_url)
+                        if item_is_amazon:
+                            supplier_name = "Amazon"
                         
                         # Try to find price for this item
                         item_prices = []
