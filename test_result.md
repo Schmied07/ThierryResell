@@ -318,6 +318,9 @@ backend:
       - working: "NA"
         agent: "main"
         comment: "ENHANCEMENT: Now returns google_suppliers_results in API response for frontend display"
+      - working: "NA"
+        agent: "main"
+        comment: "ENHANCEMENT 1: Added automatic fallback search by product name when Keepa search by EAN/GTIN returns no results. The system now tries: 1) Search by GTIN code, 2) If no product found, search by 'brand + product name'. This ensures better product coverage. ENHANCEMENT 2: Added Amazon URL filtering in Google results using is_amazon_url() function. Google suppliers list now excludes all Amazon domains (amazon.fr, amazon.com, amazon.co.uk, amazon.de, amazon.es, amazon.it) to avoid duplicate prices since Amazon price is already obtained via Keepa API."
 
   - task: "Catalog stats endpoint - updated with new margin fields"
     implemented: true
