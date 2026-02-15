@@ -60,7 +60,7 @@ const Catalog = () => {
     fetchStats();
     fetchProducts();
     fetchApiKeyStatus();
-  }, [currentPage, selectedBrand, selectedCategory, minMargin, comparedOnly, searchQuery]);
+  }, [currentPage, selectedBrand, selectedCategory, minMargin, comparedOnly, searchQuery, minOpportunityScore, opportunityLevel, trendFilter]);
 
   const fetchStats = async () => {
     try {
