@@ -1828,8 +1828,8 @@ async def preview_catalog(
             'sample_data': sample_rows,
             'total_rows': len(df),
             'suggested_mapping': suggested_mapping,
-            'required_fields': ['GTIN', 'Name', 'Category', 'Brand', 'Price'],
-            'optional_fields': ['Image']
+            'required_fields': ['GTIN', 'Price'],
+            'optional_fields': ['Name', 'Category', 'Brand', 'Image', 'Inventory', 'Offers', 'Link']
         }
         
     except HTTPException:
