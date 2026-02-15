@@ -1076,11 +1076,14 @@ async def import_catalog(
             elif 'Price' not in column_mapping and ('price' in col_lower or 'prix' in col_lower or 'lowest' in col_lower or '£' in col or '€' in col):
                 column_mapping['Price'] = col
         
+        logger.info(f"Column mapping: {column_mapping}")
+        
         # Validate required columns exist
         required_fields = ['GTIN', 'Name', 'Category', 'Brand', 'Price']
         missing_fields = [field for field in required_fields if field not in column_mapping]
         if missing_fields:
             available_cols = list(df.columns)
+            logger.error(f"Missing columns: {missing_fields}. Available: {available_cols}")
             raise HTTPException(
                 status_code=400,
                 detail=f"Colonnes manquantes : {', '.join(missing_fields)}. Colonnes disponibles : {', '.join(available_cols)}"
@@ -1088,6 +1091,7 @@ async def import_catalog(
         
         # Get exchange rate
         exchange_rate = await get_exchange_rate()
+        logger.info(f"Using exchange rate GBP->EUR: {exchange_rate}")
         
         # Process products
         products = []
