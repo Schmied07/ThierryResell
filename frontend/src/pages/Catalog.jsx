@@ -992,6 +992,245 @@ const ProductComparisonDetail = ({ product, compareResult }) => {
         </div>
       )}
 
+      {/* Price Trend Analysis Section */}
+      {product.price_trend && (
+        <div className="bg-gradient-to-br from-blue-500/5 to-cyan-500/5 rounded-lg p-5 border border-blue-500/20">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="w-5 h-5 text-blue-400" />
+            <h4 className="text-white font-semibold">📊 Analyse de Tendances (Keepa)</h4>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Current Trend */}
+            <div className="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700">
+              <p className="text-zinc-400 text-xs mb-2">Tendance actuelle</p>
+              <div className="flex items-center gap-2">
+                {product.price_trend.trend === "hausse" && (
+                  <>
+                    <TrendingUp className="w-6 h-6 text-red-400" />
+                    <span className="text-xl font-bold text-red-400">Hausse</span>
+                  </>
+                )}
+                {product.price_trend.trend === "baisse" && (
+                  <>
+                    <TrendingDown className="w-6 h-6 text-green-400" />
+                    <span className="text-xl font-bold text-green-400">Baisse</span>
+                  </>
+                )}
+                {product.price_trend.trend === "stable" && (
+                  <>
+                    <Minus className="w-6 h-6 text-blue-400" />
+                    <span className="text-xl font-bold text-blue-400">Stable</span>
+                  </>
+                )}
+              </div>
+              {product.price_trend.is_favorable && (
+                <Badge className="bg-green-500/20 text-green-400 border border-green-500/30 text-xs mt-2">
+                  ✓ Moment favorable pour vendre
+                </Badge>
+              )}
+            </div>
+
+            {/* Volatility */}
+            <div className="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700">
+              <p className="text-zinc-400 text-xs mb-2">Volatilité du marché</p>
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <div className="w-full bg-zinc-700 rounded-full h-3 overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all ${
+                        product.price_trend.volatility < 10 ? 'bg-green-500' :
+                        product.price_trend.volatility < 20 ? 'bg-blue-500' :
+                        product.price_trend.volatility < 30 ? 'bg-yellow-500' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${Math.min(product.price_trend.volatility, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+                <span className="text-white font-bold">{product.price_trend.volatility?.toFixed(1)}%</span>
+              </div>
+              <p className="text-zinc-500 text-xs mt-1">
+                {product.price_trend.volatility < 10 && "Très stable"}
+                {product.price_trend.volatility >= 10 && product.price_trend.volatility < 20 && "Stable"}
+                {product.price_trend.volatility >= 20 && product.price_trend.volatility < 30 && "Modéré"}
+                {product.price_trend.volatility >= 30 && "Très volatile"}
+              </p>
+            </div>
+
+            {/* Price Averages */}
+            <div className="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700">
+              <p className="text-zinc-400 text-xs mb-3">Prix moyens historiques</p>
+              <div className="space-y-2">
+                {product.price_trend.avg_30d && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-zinc-400 text-sm">30 jours :</span>
+                    <span className="text-white font-semibold">{product.price_trend.avg_30d.toFixed(2)}€</span>
+                  </div>
+                )}
+                {product.price_trend.avg_60d && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-zinc-400 text-sm">60 jours :</span>
+                    <span className="text-white font-semibold">{product.price_trend.avg_60d.toFixed(2)}€</span>
+                  </div>
+                )}
+                {product.price_trend.avg_90d && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-zinc-400 text-sm">90 jours :</span>
+                    <span className="text-white font-semibold">{product.price_trend.avg_90d.toFixed(2)}€</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Min/Max Range */}
+            <div className="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700">
+              <p className="text-zinc-400 text-xs mb-3">Fourchette (30 jours)</p>
+              <div className="space-y-2">
+                {product.price_trend.min_30d && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-zinc-400 text-sm">Minimum :</span>
+                    <span className="text-green-400 font-semibold">{product.price_trend.min_30d.toFixed(2)}€</span>
+                  </div>
+                )}
+                {product.price_trend.max_30d && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-zinc-400 text-sm">Maximum :</span>
+                    <span className="text-red-400 font-semibold">{product.price_trend.max_30d.toFixed(2)}€</span>
+                  </div>
+                )}
+                {product.price_trend.min_30d && product.price_trend.max_30d && (
+                  <div className="flex justify-between items-center pt-2 border-t border-zinc-700">
+                    <span className="text-zinc-400 text-sm">Écart :</span>
+                    <span className="text-white font-semibold">
+                      {(product.price_trend.max_30d - product.price_trend.min_30d).toFixed(2)}€
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Opportunity Score Section */}
+      {product.opportunity_score !== null && product.opportunity_score !== undefined && (
+        <div className="bg-gradient-to-br from-purple-500/5 to-pink-500/5 rounded-lg p-5 border border-purple-500/20">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-purple-400" />
+            <h4 className="text-white font-semibold">⭐ Score d'Opportunité de Revente</h4>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Score Gauge */}
+            <div className="flex items-center justify-center">
+              <div className="relative w-40 h-40">
+                <svg className="transform -rotate-90 w-40 h-40">
+                  <circle
+                    cx="80"
+                    cy="80"
+                    r="70"
+                    stroke="currentColor"
+                    strokeWidth="12"
+                    fill="transparent"
+                    className="text-zinc-800"
+                  />
+                  <circle
+                    cx="80"
+                    cy="80"
+                    r="70"
+                    stroke="currentColor"
+                    strokeWidth="12"
+                    fill="transparent"
+                    strokeDasharray={`${2 * Math.PI * 70}`}
+                    strokeDashoffset={`${2 * Math.PI * 70 * (1 - product.opportunity_score / 100)}`}
+                    className={`${
+                      product.opportunity_level === "Excellent" ? 'text-purple-500' :
+                      product.opportunity_level === "Bon" ? 'text-green-500' :
+                      product.opportunity_level === "Moyen" ? 'text-yellow-500' : 'text-gray-500'
+                    }`}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className={`text-4xl font-bold ${
+                    product.opportunity_level === "Excellent" ? 'text-purple-400' :
+                    product.opportunity_level === "Bon" ? 'text-green-400' :
+                    product.opportunity_level === "Moyen" ? 'text-yellow-400' : 'text-gray-400'
+                  }`}>
+                    {product.opportunity_score}
+                  </span>
+                  <span className="text-zinc-500 text-sm">/100</span>
+                  <Badge className={`mt-2 ${
+                    product.opportunity_level === "Excellent" ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' :
+                    product.opportunity_level === "Bon" ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                    product.opportunity_level === "Moyen" ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                    'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                  } border text-xs`}>
+                    {product.opportunity_level}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
+            {/* Score Breakdown */}
+            <div className="space-y-3">
+              <p className="text-zinc-400 text-xs mb-3">Détail du calcul (sur 100 points)</p>
+              
+              {product.opportunity_details && (
+                <>
+                  <div className="flex items-center justify-between bg-zinc-800/50 rounded p-2 border border-zinc-700">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-green-400" />
+                      <span className="text-sm text-zinc-300">Marge</span>
+                    </div>
+                    <span className="text-white font-bold">{product.opportunity_details.margin_score || 0}/30</span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-zinc-800/50 rounded p-2 border border-zinc-700">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-blue-400" />
+                      <span className="text-sm text-zinc-300">Tendance prix</span>
+                    </div>
+                    <span className="text-white font-bold">{product.opportunity_details.trend_score || 0}/25</span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-zinc-800/50 rounded p-2 border border-zinc-700">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-purple-400" />
+                      <span className="text-sm text-zinc-300">Concurrence</span>
+                    </div>
+                    <span className="text-white font-bold">{product.opportunity_details.competition_score || 0}/20</span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-zinc-800/50 rounded p-2 border border-zinc-700">
+                    <div className="flex items-center gap-2">
+                      <Minus className="w-4 h-4 text-yellow-400" />
+                      <span className="text-sm text-zinc-300">Volatilité</span>
+                    </div>
+                    <span className="text-white font-bold">{product.opportunity_details.volatility_score || 0}/15</span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-zinc-800/50 rounded p-2 border border-zinc-700">
+                    <div className="flex items-center gap-2">
+                      <Tag className="w-4 h-4 text-amber-400" />
+                      <span className="text-sm text-zinc-300">Prix vs historique</span>
+                    </div>
+                    <span className="text-white font-bold">{product.opportunity_details.position_score || 0}/10</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-purple-500/20">
+            <p className="text-zinc-400 text-xs flex items-center gap-2">
+              <Info className="w-4 h-4" />
+              Le score combine la marge, la tendance des prix Amazon, le nombre de concurrents Google, la volatilité du marché et la position du prix actuel.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Comparison Summary */}
       {amazonPrice && (
         <div className="bg-zinc-800/30 rounded-lg p-4 border border-zinc-700">
