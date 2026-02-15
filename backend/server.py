@@ -281,6 +281,239 @@ def calculate_margin(selling_price: float, buying_price: float, fees: float) -> 
         'margin_percentage': margin_percentage
     }
 
+# ==================== PRICE TREND ANALYSIS ====================
+
+def analyze_keepa_price_trends(keepa_product: dict, current_price: float) -> dict:
+    """
+    Analyze Keepa price history to determine trends, volatility, and opportunity signals.
+    
+    Returns:
+    - trend: "hausse" | "baisse" | "stable"
+    - current_price: current Amazon price
+    - avg_30d, avg_60d, avg_90d: average prices over periods
+    - min_30d, max_30d: price range in last 30 days
+    - volatility: price volatility percentage (0-100)
+    - is_favorable: True if current price is below 30-day average (good time to sell)
+    """
+    try:
+        csv_data = keepa_product.get('csv', [])
+        if not csv_data or len(csv_data) == 0:
+            logger.info("No CSV data in Keepa product for trend analysis")
+            return None
+        
+        # Keepa CSV format: csv[0] = Amazon prices, csv[1] = Marketplace New, etc.
+        # Each array is [timestamp_minutes, price_cents, timestamp_minutes, price_cents, ...]
+        # Timestamps are in Keepa minutes (minutes since Keepa epoch: 21 Dec 2000)
+        
+        # Try to get price history from Amazon direct (index 0) or New FBA (index 4)
+        price_history = []
+        for csv_idx in [0, 4, 1]:  # Amazon, New FBA, New 3rd party
+            if len(csv_data) > csv_idx and csv_data[csv_idx]:
+                prices_array = csv_data[csv_idx]
+                # Parse [timestamp, price, timestamp, price, ...]
+                for i in range(0, len(prices_array), 2):
+                    if i + 1 < len(prices_array):
+                        timestamp_keepa = prices_array[i]
+                        price_cents = prices_array[i + 1]
+                        
+                        if timestamp_keepa is not None and price_cents is not None and price_cents > 0:
+                            # Convert Keepa minutes to datetime
+                            keepa_epoch = datetime(2000, 12, 21, tzinfo=timezone.utc)
+                            price_date = keepa_epoch + timedelta(minutes=timestamp_keepa)
+                            price_eur = price_cents / 100.0
+                            
+                            price_history.append({
+                                'date': price_date,
+                                'price': price_eur
+                            })
+                
+                if len(price_history) > 0:
+                    logger.info(f"Found {len(price_history)} price points from csv index {csv_idx}")
+                    break
+        
+        if len(price_history) < 2:
+            logger.info("Insufficient price history for trend analysis")
+            return None
+        
+        # Sort by date
+        price_history.sort(key=lambda x: x['date'])
+        
+        # Calculate statistics for different time periods
+        now = datetime.now(timezone.utc)
+        date_30d = now - timedelta(days=30)
+        date_60d = now - timedelta(days=60)
+        date_90d = now - timedelta(days=90)
+        
+        prices_30d = [p['price'] for p in price_history if p['date'] >= date_30d]
+        prices_60d = [p['price'] for p in price_history if p['date'] >= date_60d]
+        prices_90d = [p['price'] for p in price_history if p['date'] >= date_90d]
+        
+        # Calculate averages
+        avg_30d = round(sum(prices_30d) / len(prices_30d), 2) if prices_30d else None
+        avg_60d = round(sum(prices_60d) / len(prices_60d), 2) if prices_60d else None
+        avg_90d = round(sum(prices_90d) / len(prices_90d), 2) if prices_90d else None
+        
+        # Calculate min/max for 30 days
+        min_30d = round(min(prices_30d), 2) if prices_30d else None
+        max_30d = round(max(prices_30d), 2) if prices_30d else None
+        
+        # Calculate volatility (coefficient of variation)
+        if prices_30d and len(prices_30d) > 1:
+            mean_price = avg_30d
+            variance = sum((p - mean_price) ** 2 for p in prices_30d) / len(prices_30d)
+            std_dev = variance ** 0.5
+            volatility = round((std_dev / mean_price) * 100, 2) if mean_price > 0 else 0
+        else:
+            volatility = 0
+        
+        # Determine trend: compare current price to 30-day average
+        if avg_30d:
+            diff_percentage = ((current_price - avg_30d) / avg_30d) * 100
+            if diff_percentage > 5:
+                trend = "hausse"
+            elif diff_percentage < -5:
+                trend = "baisse"
+            else:
+                trend = "stable"
+        else:
+            trend = "stable"
+        
+        # Is it a favorable time to sell? (current price is below average = lower competition)
+        is_favorable = current_price < avg_30d if avg_30d else False
+        
+        return {
+            'trend': trend,
+            'current_price': current_price,
+            'avg_30d': avg_30d,
+            'avg_60d': avg_60d,
+            'avg_90d': avg_90d,
+            'min_30d': min_30d,
+            'max_30d': max_30d,
+            'volatility': volatility,
+            'is_favorable': is_favorable,
+            'data_points': len(price_history)
+        }
+    
+    except Exception as e:
+        logger.error(f"Error analyzing Keepa price trends: {e}")
+        return None
+
+
+def calculate_opportunity_score(
+    margin_eur: Optional[float],
+    margin_percentage: Optional[float],
+    price_trend: Optional[dict],
+    google_suppliers_count: int,
+    amazon_price: Optional[float],
+    supplier_price: float
+) -> dict:
+    """
+    Calculate opportunity score (0-100) combining multiple factors.
+    
+    Scoring breakdown:
+    - Margin (30 points max): Higher margin = better
+    - Price trend (25 points max): Downward trend = better time to sell
+    - Competition (20 points max): Fewer Google suppliers = less competition
+    - Volatility (15 points max): Lower volatility = more predictable
+    - Price position (10 points max): Current price below average = opportunity
+    
+    Returns:
+    - score (0-100)
+    - level: "Excellent" (80+) | "Bon" (60-79) | "Moyen" (40-59) | "Faible" (<40)
+    - details: breakdown of points per category
+    """
+    score = 0
+    details = {}
+    
+    # 1. MARGIN SCORE (30 points max)
+    margin_score = 0
+    if margin_percentage is not None:
+        if margin_percentage >= 50:
+            margin_score = 30
+        elif margin_percentage >= 30:
+            margin_score = 20
+        elif margin_percentage >= 10:
+            margin_score = 10
+        else:
+            margin_score = 0
+    details['margin_score'] = margin_score
+    score += margin_score
+    
+    # 2. TREND SCORE (25 points max)
+    trend_score = 0
+    if price_trend:
+        trend = price_trend.get('trend', 'stable')
+        if trend == "baisse":
+            trend_score = 25  # Price dropping = good time to sell at current price
+        elif trend == "stable":
+            trend_score = 15
+        elif trend == "hausse":
+            trend_score = 5  # Price rising = might drop again
+    details['trend_score'] = trend_score
+    score += trend_score
+    
+    # 3. COMPETITION SCORE (20 points max)
+    competition_score = 0
+    if google_suppliers_count == 0:
+        competition_score = 20  # No competition found
+    elif google_suppliers_count <= 2:
+        competition_score = 20  # Very low competition (niche)
+    elif google_suppliers_count <= 5:
+        competition_score = 15  # Low competition
+    elif google_suppliers_count <= 8:
+        competition_score = 10  # Moderate competition
+    else:
+        competition_score = 5  # High competition
+    details['competition_score'] = competition_score
+    score += competition_score
+    
+    # 4. VOLATILITY SCORE (15 points max)
+    volatility_score = 0
+    if price_trend:
+        volatility = price_trend.get('volatility', 100)
+        if volatility < 10:
+            volatility_score = 15  # Very stable
+        elif volatility < 20:
+            volatility_score = 10  # Stable
+        elif volatility < 30:
+            volatility_score = 5  # Moderate volatility
+        else:
+            volatility_score = 0  # High volatility (risky)
+    details['volatility_score'] = volatility_score
+    score += volatility_score
+    
+    # 5. PRICE POSITION SCORE (10 points max)
+    position_score = 0
+    if price_trend and price_trend.get('avg_30d'):
+        current = price_trend['current_price']
+        avg_30d = price_trend['avg_30d']
+        diff_percentage = ((current - avg_30d) / avg_30d) * 100
+        
+        if diff_percentage < -10:
+            position_score = 10  # Current price well below average
+        elif diff_percentage < 0:
+            position_score = 5  # Current price below average
+        else:
+            position_score = 0  # Current price at or above average
+    details['position_score'] = position_score
+    score += position_score
+    
+    # Determine level
+    if score >= 80:
+        level = "Excellent"
+    elif score >= 60:
+        level = "Bon"
+    elif score >= 40:
+        level = "Moyen"
+    else:
+        level = "Faible"
+    
+    return {
+        'score': score,
+        'level': level,
+        'details': details
+    }
+
 # ==================== CATALOG MODELS ====================
 
 class CatalogProduct(BaseModel):
