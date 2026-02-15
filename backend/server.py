@@ -1840,6 +1840,18 @@ def generate_mock_catalog_prices(product: dict) -> dict:
     }
 
 
+def is_amazon_url(url: str) -> bool:
+    """Check if URL is from Amazon (any domain)"""
+    try:
+        from urllib.parse import urlparse
+        domain = urlparse(url).netloc.lower()
+        # Check for Amazon domains: amazon.fr, amazon.com, amazon.co.uk, amazon.de, etc.
+        amazon_patterns = ['amazon.fr', 'amazon.com', 'amazon.co.uk', 'amazon.de', 'amazon.es', 'amazon.it']
+        return any(pattern in domain for pattern in amazon_patterns)
+    except Exception:
+        return False
+
+
 def extract_supplier_name_from_url(url: str) -> str:
     """Extract supplier name from URL domain"""
     try:
