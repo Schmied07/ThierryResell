@@ -640,6 +640,181 @@ def predict_price_profitability(price_trend: dict, amazon_price: float, supplier
         return None
 
 
+# ==================== KEEPA MULTI-DOMAIN SEARCH ====================
+
+# Keepa domain IDs: 1=US, 2=UK, 3=DE, 4=FR, 5=JP, 6=CA, 7=CN, 8=IT, 9=ES, 10=IN, 11=MX
+KEEPA_EUROPEAN_DOMAINS = [
+    {'domain': 4, 'name': 'Amazon.fr', 'flag': '🇫🇷', 'currency': 'EUR', 'exchange_rate': 1.0},
+    {'domain': 3, 'name': 'Amazon.de', 'flag': '🇩🇪', 'currency': 'EUR', 'exchange_rate': 1.0},
+    {'domain': 8, 'name': 'Amazon.it', 'flag': '🇮🇹', 'currency': 'EUR', 'exchange_rate': 1.0},
+    {'domain': 9, 'name': 'Amazon.es', 'flag': '🇪🇸', 'currency': 'EUR', 'exchange_rate': 1.0},
+    {'domain': 2, 'name': 'Amazon.co.uk', 'flag': '🇬🇧', 'currency': 'GBP', 'exchange_rate': 1.17},
+    {'domain': 1, 'name': 'Amazon.com', 'flag': '🇺🇸', 'currency': 'USD', 'exchange_rate': 0.92},
+]
+
+
+async def search_keepa_product_multi_domain(
+    http_client: httpx.AsyncClient,
+    keepa_key: str,
+    gtin: Optional[str] = None,
+    search_term: Optional[str] = None,
+    primary_domain: int = 4
+) -> tuple:
+    """
+    Search for a product on Keepa across multiple Amazon domains.
+    Tries the primary domain first (default: Amazon.fr), then falls back to other European domains.
+    
+    Args:
+        http_client: httpx AsyncClient
+        keepa_key: Keepa API key
+        gtin: Product EAN/GTIN code (optional)
+        search_term: Product name/keywords for text search (optional)
+        primary_domain: Primary domain to try first (default: 4 = Amazon.fr)
+    
+    Returns:
+        tuple: (keepa_product, found_domain_info) or (None, None) if not found
+    """
+    
+    # Build ordered domain list: primary domain first, then others
+    domains_to_try = []
+    for d in KEEPA_EUROPEAN_DOMAINS:
+        if d['domain'] == primary_domain:
+            domains_to_try.insert(0, d)
+        else:
+            domains_to_try.append(d)
+    
+    for domain_info in domains_to_try:
+        domain_id = domain_info['domain']
+        domain_name = domain_info['name']
+        
+        try:
+            # Step 1: Try by GTIN/EAN code if available
+            if gtin:
+                logger.info(f"Keepa: searching GTIN {gtin} on {domain_name} (domain={domain_id})")
+                response = await http_client.get(
+                    "https://api.keepa.com/product",
+                    params={
+                        "key": keepa_key,
+                        "domain": domain_id,
+                        "code": gtin,
+                        "stats": 1,
+                    },
+                    timeout=30
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    products_found = data.get('products', [])
+                    if products_found and len(products_found) > 0:
+                        keepa_product = products_found[0]
+                        logger.info(f"✅ Keepa found ASIN {keepa_product.get('asin', 'N/A')} via GTIN on {domain_name}")
+                        return keepa_product, domain_info
+                    else:
+                        logger.info(f"Keepa: no product found for GTIN {gtin} on {domain_name}")
+                elif response.status_code == 429:
+                    logger.warning(f"Keepa: rate limited (429) on {domain_name}, stopping multi-domain search")
+                    break
+                else:
+                    logger.warning(f"Keepa: HTTP {response.status_code} for GTIN search on {domain_name}")
+            
+            # Step 2: Try by keyword search if GTIN failed or not provided
+            if search_term:
+                logger.info(f"Keepa: searching term '{search_term}' on {domain_name} (domain={domain_id})")
+                search_response = await http_client.get(
+                    "https://api.keepa.com/search",
+                    params={
+                        "key": keepa_key,
+                        "domain": domain_id,
+                        "type": "product",
+                        "term": search_term
+                    },
+                    timeout=30
+                )
+                
+                if search_response.status_code == 200:
+                    search_data = search_response.json()
+                    asin_list = search_data.get('asinList', [])
+                    
+                    if asin_list and len(asin_list) > 0:
+                        # Get product details for the first ASIN found
+                        detail_response = await http_client.get(
+                            "https://api.keepa.com/product",
+                            params={
+                                "key": keepa_key,
+                                "domain": domain_id,
+                                "asin": asin_list[0],
+                                "stats": 1,
+                            },
+                            timeout=30
+                        )
+                        if detail_response.status_code == 200:
+                            detail_data = detail_response.json()
+                            if detail_data.get('products') and len(detail_data['products']) > 0:
+                                keepa_product = detail_data['products'][0]
+                                logger.info(f"✅ Keepa found ASIN {keepa_product.get('asin', 'N/A')} via name search on {domain_name}")
+                                return keepa_product, domain_info
+                    else:
+                        logger.info(f"Keepa: no results for name search on {domain_name}")
+                elif search_response.status_code == 429:
+                    logger.warning(f"Keepa: rate limited (429) on {domain_name} name search, stopping")
+                    break
+                else:
+                    logger.warning(f"Keepa: HTTP {search_response.status_code} for name search on {domain_name}")
+        
+        except httpx.TimeoutException:
+            logger.warning(f"Keepa: timeout on {domain_name}, trying next domain...")
+            continue
+        except Exception as e:
+            logger.warning(f"Keepa: error on {domain_name}: {e}")
+            continue
+    
+    logger.info(f"Keepa: product not found on any domain (GTIN={gtin}, term={search_term})")
+    return None, None
+
+
+def extract_keepa_price(keepa_product: dict) -> Optional[float]:
+    """
+    Extract the best available price from a Keepa product object.
+    Returns price in the product's currency (EUR, GBP, USD etc.) or None.
+    """
+    stats = keepa_product.get('stats', {})
+    current_prices = stats.get('current', [])
+    
+    # Priority: Amazon (0) > New FBA (4) > New 3rd party (1) > Amazon Warehouse (10) > Buy Box (7)
+    price_indices_to_try = [0, 4, 1, 10, 7]
+    
+    # Method 1: Current prices
+    for idx in price_indices_to_try:
+        if current_prices and len(current_prices) > idx:
+            price_val = current_prices[idx]
+            if price_val is not None and price_val > 0:
+                return price_val / 100.0
+    
+    # Method 2: buyBoxPrice
+    buy_box = stats.get('buyBoxPrice')
+    if buy_box is not None and buy_box > 0:
+        return buy_box / 100.0
+    
+    # Method 3: avg30 (30-day average)
+    avg30 = stats.get('avg30', [])
+    for idx in price_indices_to_try:
+        if avg30 and len(avg30) > idx:
+            price_val = avg30[idx]
+            if price_val is not None and price_val > 0:
+                return price_val / 100.0
+    
+    # Method 4: csv price history
+    csv_data = keepa_product.get('csv', [])
+    for csv_idx in [0, 4, 1]:
+        if csv_data and len(csv_data) > csv_idx and csv_data[csv_idx]:
+            prices_array = csv_data[csv_idx]
+            for i in range(len(prices_array) - 1, 0, -2):
+                if prices_array[i] is not None and prices_array[i] > 0:
+                    return prices_array[i] / 100.0
+    
+    return None
+
+
 async def analyze_multi_market_arbitrage(gtin: str, supplier_price_eur: float, keepa_api_key: Optional[str]) -> dict:
     """
     Analyze arbitrage opportunities across multiple Amazon marketplaces.
@@ -654,12 +829,12 @@ async def analyze_multi_market_arbitrage(gtin: str, supplier_price_eur: float, k
     - exchange_rates: Currency conversion rates used
     """
     
-    # Market configurations
+    # Market configurations - CORRECT Keepa domain IDs
     MARKETS = {
-        'FR': {'domain': 1, 'currency': 'EUR', 'name': 'France', 'flag': '🇫🇷', 'exchange_rate': 1.0},
+        'FR': {'domain': 4, 'currency': 'EUR', 'name': 'France', 'flag': '🇫🇷', 'exchange_rate': 1.0},
         'UK': {'domain': 2, 'currency': 'GBP', 'name': 'Royaume-Uni', 'flag': '🇬🇧', 'exchange_rate': 1.17},  # GBP to EUR
         'DE': {'domain': 3, 'currency': 'EUR', 'name': 'Allemagne', 'flag': '🇩🇪', 'exchange_rate': 1.0},
-        'ES': {'domain': 4, 'currency': 'EUR', 'name': 'Espagne', 'flag': '🇪🇸', 'exchange_rate': 1.0},
+        'ES': {'domain': 9, 'currency': 'EUR', 'name': 'Espagne', 'flag': '🇪🇸', 'exchange_rate': 1.0},
     }
     
     AMAZON_FEE_RATE = 0.15
