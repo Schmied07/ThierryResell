@@ -2590,133 +2590,37 @@ async def compare_catalog_product(
     is_mock_data = False
     keepa_product = None  # Store Keepa product data for trend analysis
     
-    # ==================== KEEPA API (Amazon price) ====================
+    # ==================== KEEPA API (Amazon price) - MULTI-DOMAIN ====================
+    found_domain_info = None
     if keepa_key:
         try:
             async with httpx.AsyncClient() as http_client:
-                # Step 1: Try /product endpoint with code parameter for EAN/GTIN lookup
-                response = await http_client.get(
-                    "https://api.keepa.com/product",
-                    params={
-                        "key": keepa_key,
-                        "domain": 4,  # Amazon.fr
-                        "code": product['gtin'],
-                        "stats": 1,  # Include stats with current prices
-                    },
-                    timeout=30
+                # Build search term for fallback name search
+                brand_part = product.get('brand', '')
+                name_part = product.get('name', '')
+                search_term = f"{brand_part} {name_part}".strip() if brand_part and brand_part != 'Non spécifié' else name_part
+                
+                # Multi-domain search: tries FR first, then DE, IT, ES, UK, US
+                keepa_product, found_domain_info = await search_keepa_product_multi_domain(
+                    http_client=http_client,
+                    keepa_key=keepa_key,
+                    gtin=product.get('gtin'),
+                    search_term=search_term,
+                    primary_domain=4  # Amazon.fr first
                 )
-                logger.info(f"Keepa API response status for {product['gtin']}: {response.status_code}")
                 
-                keepa_product = None
-                if response.status_code == 200:
-                    data = response.json()
-                    products_found = data.get('products', [])
-                    if products_found and len(products_found) > 0:
-                        keepa_product = products_found[0]
-                        logger.info(f"Keepa found ASIN via GTIN: {keepa_product.get('asin', 'N/A')} for {product['name']}")
-                    else:
-                        logger.info(f"Keepa: no products found for EAN {product['gtin']}, trying search by name...")
-                
-                # Step 2: If no product found by GTIN, try search by product name
-                if keepa_product is None:
-                    search_term = f"{product['brand']} {product['name']}"
-                    logger.info(f"Keepa: searching by name: {search_term}")
-                    
-                    search_response = await http_client.get(
-                        "https://api.keepa.com/search",
-                        params={
-                            "key": keepa_key,
-                            "domain": 4,  # Amazon.fr
-                            "type": "product",
-                            "term": search_term
-                        },
-                        timeout=30
-                    )
-                    
-                    if search_response.status_code == 200:
-                        search_data = search_response.json()
-                        asin_list = search_data.get('asinList', [])
-                        
-                        if asin_list and len(asin_list) > 0:
-                            # Get product details for the first ASIN found
-                            detail_response = await http_client.get(
-                                "https://api.keepa.com/product",
-                                params={
-                                    "key": keepa_key,
-                                    "domain": 4,
-                                    "asin": asin_list[0],
-                                    "stats": 1,
-                                },
-                                timeout=30
-                            )
-                            if detail_response.status_code == 200:
-                                detail_data = detail_response.json()
-                                if detail_data.get('products') and len(detail_data['products']) > 0:
-                                    keepa_product = detail_data['products'][0]
-                                    logger.info(f"Keepa found ASIN via name search: {keepa_product.get('asin', 'N/A')} for {product['name']}")
-                        else:
-                            logger.info(f"Keepa: no products found by name search for {search_term}")
-                    else:
-                        logger.warning(f"Keepa search API HTTP {search_response.status_code}: {search_response.text[:200]}")
-                
-                # Step 3: Extract price from found product
+                # Extract price from found product
                 if keepa_product:
-                    # Keepa price indices:
-                    # 0 = Amazon direct, 1 = New 3rd party, 2 = Used, 3 = Sales Rank,
-                    # 4 = New FBA (3rd party via Amazon FBA), 5 = Lightning Deal, etc.
-                    # Prices are in cents, -1 or -2 means no data
-                    stats = keepa_product.get('stats', {})
-                    current_prices = stats.get('current', [])
-                    
-                    # Priority: Amazon (0) > New FBA (4) > New 3rd party (1) > buyBoxPrice
-                    price_indices_to_try = [0, 4, 1, 10, 7]  # Amazon, New FBA, New, Amazon Warehouse, Buy Box
-                    
-                    for idx in price_indices_to_try:
-                        if current_prices and len(current_prices) > idx:
-                            price_val = current_prices[idx]
-                            if price_val is not None and price_val > 0:
-                                amazon_price = price_val / 100.0
-                                logger.info(f"Keepa: found price €{amazon_price} at index {idx}")
-                                break
-                    
-                    # Method 2: Try buyBoxPrice
-                    if amazon_price is None:
-                        buy_box = stats.get('buyBoxPrice')
-                        if buy_box is not None and buy_box > 0:
-                            amazon_price = buy_box / 100.0
-                            logger.info(f"Keepa: found buyBoxPrice €{amazon_price}")
-                    
-                    # Method 3: Try avg30 (30-day average) as fallback
-                    if amazon_price is None:
-                        avg30 = stats.get('avg30', [])
-                        for idx in price_indices_to_try:
-                            if avg30 and len(avg30) > idx:
-                                price_val = avg30[idx]
-                                if price_val is not None and price_val > 0:
-                                    amazon_price = price_val / 100.0
-                                    logger.info(f"Keepa: found avg30 price €{amazon_price} at index {idx}")
-                                    break
-                    
-                    # Method 4: Try csv price history
-                    if amazon_price is None:
-                        csv_data = keepa_product.get('csv', [])
-                        # Try different csv indices
-                        for csv_idx in [0, 4, 1]:  # Amazon, New FBA, New 3rd party
-                            if csv_data and len(csv_data) > csv_idx and csv_data[csv_idx]:
-                                prices_array = csv_data[csv_idx]
-                                # csv arrays are [timestamp, price, timestamp, price, ...]
-                                # Walk backwards to find the last valid price
-                                for i in range(len(prices_array) - 1, 0, -2):
-                                    if prices_array[i] is not None and prices_array[i] > 0:
-                                        amazon_price = prices_array[i] / 100.0
-                                        logger.info(f"Keepa: found csv price €{amazon_price} at csv index {csv_idx}")
-                                        break
-                            if amazon_price is not None:
-                                break
-                    
-                    logger.info(f"Keepa final Amazon price for {product['name']}: €{amazon_price}")
+                    local_price = extract_keepa_price(keepa_product)
+                    if local_price is not None:
+                        # Convert to EUR if needed
+                        exchange_rate = found_domain_info.get('exchange_rate', 1.0) if found_domain_info else 1.0
+                        amazon_price = round(local_price * exchange_rate, 2)
+                        logger.info(f"Keepa final Amazon price for {product['name']}: €{amazon_price} (from {found_domain_info.get('name', 'unknown')})")
+                    else:
+                        logger.info(f"Keepa: product found but no valid price for {product['name']}")
                 else:
-                    logger.info(f"Keepa: no products found for {product['name']} (neither by GTIN nor by name)")
+                    logger.info(f"Keepa: no products found for {product['name']} on any domain")
                     
         except Exception as e:
             logger.warning(f"Keepa API error for {product['gtin']}: {e}")
