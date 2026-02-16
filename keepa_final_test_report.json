@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-02-16T16:52:09.352854",
+  "product_target": "Sanex Deodorant Roller Dermo Invisible Personal Care",
+  "ean_tested": "8710447348741",
+  "results": {
+    "api_status": {
+      "valid": true,
+      "tokens": 714
+    },
+    "keyword_search": {
+      "asin": null
+    },
+    "asin_lookup": {
+      "success": true,
+      "note": "Test avec ASIN connu"
+    },
+    "ean_lookup": {
+      "success": false,
+      "ean": "8710447348741"
+    }
+  }
+}
