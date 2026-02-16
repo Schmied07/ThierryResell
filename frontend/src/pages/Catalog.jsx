@@ -1167,9 +1167,14 @@ const Catalog = () => {
                                   </TableCell>
                                   <TableCell className="text-right">
                                     {product.amazon_price_eur ? (
-                                      <span className="text-amber-400 font-semibold text-sm">
-                                        {product.amazon_price_eur.toFixed(2)}€
-                                      </span>
+                                      <div className="flex flex-col items-end">
+                                        <span className="text-amber-400 font-semibold text-sm">
+                                          {product.amazon_price_eur.toFixed(2)}€
+                                        </span>
+                                        {product.amazon_source_domain && product.amazon_source_domain !== 'Amazon.fr' && product.amazon_source_domain !== 'Mock' && (
+                                          <span className="text-[9px] text-amber-300/60 mt-0.5">{product.amazon_source_domain}</span>
+                                        )}
+                                      </div>
                                     ) : (
                                       <span className="text-zinc-600 text-sm">-</span>
                                     )}
