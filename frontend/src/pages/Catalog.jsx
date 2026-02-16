@@ -1138,24 +1138,26 @@ const Catalog = () => {
                                       className="rounded"
                                     />
                                   </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-3 max-w-[280px]">
-                                      {product.image_url ? (
-                                        <img 
-                                          src={product.image_url} 
-                                          alt={product.name}
-                                          className="w-10 h-10 object-cover rounded-lg border border-zinc-700 flex-shrink-0"
-                                          onError={(e) => { e.target.style.display = 'none'; }}
-                                        />
-                                      ) : (
-                                        <div className="w-10 h-10 bg-zinc-800 rounded-lg border border-zinc-700 flex items-center justify-center flex-shrink-0">
-                                          <Package className="w-4 h-4 text-zinc-600" />
-                                        </div>
-                                      )}
-                                      <div className="min-w-0">
-                                        <p className="text-white text-sm font-medium truncate">{product.name}</p>
-                                        <p className="text-zinc-500 text-xs">{product.brand} · {product.gtin}</p>
+                                  <TableCell className="text-center">
+                                    {product.image_url ? (
+                                      <img 
+                                        src={product.image_url} 
+                                        alt={product.name}
+                                        className="w-16 h-16 object-cover rounded-lg border border-zinc-700 mx-auto"
+                                        onError={(e) => { e.target.src = ''; e.target.style.display = 'none'; }}
+                                      />
+                                    ) : (
+                                      <div className="w-16 h-16 bg-zinc-800 rounded-lg border border-zinc-700 flex items-center justify-center mx-auto">
+                                        <Package className="w-6 h-6 text-zinc-600" />
                                       </div>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="max-w-[350px]">
+                                      <p className="text-white text-sm font-medium leading-relaxed break-words" title={product.name}>
+                                        {product.name}
+                                      </p>
+                                      <p className="text-zinc-500 text-xs mt-1">{product.brand} · {product.gtin}</p>
                                     </div>
                                   </TableCell>
                                   <TableCell className="text-right">
