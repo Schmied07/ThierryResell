@@ -10,7 +10,7 @@ import sys
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://price-id-import.preview.emergentagent.com/api"
+BACKEND_URL = "https://search-price-fix.preview.emergentagent.com/api"
 TEST_USER = {
     "email": "dataforseo_test@test.com", 
     "password": "test123",

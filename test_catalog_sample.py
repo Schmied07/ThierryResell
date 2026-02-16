@@ -6,7 +6,7 @@ Additional test for catalog_sample.xlsx file as specified in review request
 import requests
 import json
 
-BACKEND_URL = "https://price-id-import.preview.emergentagent.com/api"
+BACKEND_URL = "https://search-price-fix.preview.emergentagent.com/api"
 TEST_EMAIL = "flextest@test.com"  
 TEST_PASSWORD = "test123"
 
