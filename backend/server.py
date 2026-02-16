@@ -2846,8 +2846,10 @@ async def compare_catalog_product(
             logger.info(f"Multi-market arbitrage for {product['name']}: Best sell market = {multi_market_arbitrage['best_sell_market']['country']}, arbitrage profit = €{multi_market_arbitrage['arbitrage_opportunity_eur']}")
     
     # Update product in database with all comparison data
+    amazon_source_domain = found_domain_info.get('name', 'Amazon.fr') if found_domain_info else ('Mock' if is_mock_data else 'Amazon.fr')
     update_data = {
         'amazon_price_eur': amazon_price,
+        'amazon_source_domain': amazon_source_domain,
         'google_lowest_price_eur': google_lowest_price,
         'google_suppliers_results': google_suppliers if google_suppliers else None,  # Store all Google suppliers
         'cheapest_source': cheapest_source,
