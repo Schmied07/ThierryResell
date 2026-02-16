@@ -1079,6 +1079,12 @@ const Catalog = () => {
                                 className="rounded"
                               />
                             </TableHead>
+                            <TableHead className="text-zinc-400 w-20 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <Image className="w-3 h-3" />
+                                Image
+                              </div>
+                            </TableHead>
                             <TableHead className="text-zinc-400">Produit</TableHead>
                             <TableHead className="text-zinc-400 text-right">Fournisseur</TableHead>
                             <TableHead className="text-zinc-400 text-right">
