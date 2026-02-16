@@ -2236,6 +2236,148 @@ def extract_price_from_text(text: str) -> Optional[float]:
     return min(prices) if prices else None
 
 
+async def search_google_shopping_dataforseo(product: dict, login: str, password: str) -> tuple:
+    """Search Google Shopping via DataForSEO Merchant API.
+    
+    Returns:
+        tuple: (google_lowest_price, google_suppliers_list)
+    """
+    import base64
+    
+    google_suppliers = []
+    google_lowest_price = None
+    
+    try:
+        # Build search query from product info
+        search_parts = []
+        if product.get('brand') and product['brand'] != 'Non spécifié':
+            search_parts.append(product['brand'])
+        if product.get('name') and product['name'] != 'Non spécifié':
+            search_parts.append(product['name'])
+        if not search_parts:
+            search_parts.append(product.get('gtin', ''))
+        
+        search_keyword = ' '.join(search_parts).strip()
+        if not search_keyword:
+            logger.warning("DataForSEO: no search keyword available")
+            return None, []
+        
+        logger.info(f"DataForSEO Google Shopping search: '{search_keyword}'")
+        
+        # Build auth header
+        credentials = base64.b64encode(f"{login}:{password}".encode()).decode()
+        
+        async with httpx.AsyncClient() as http_client:
+            response = await http_client.post(
+                "https://api.dataforseo.com/v3/merchant/google/products/live",
+                headers={
+                    "Authorization": f"Basic {credentials}",
+                    "Content-Type": "application/json"
+                },
+                json=[{
+                    "language_code": "fr",
+                    "location_code": 2250,  # France
+                    "keyword": search_keyword,
+                    "price_min": 1
+                }],
+                timeout=30
+            )
+            
+            logger.info(f"DataForSEO API response status: {response.status_code}")
+            
+            if response.status_code == 200:
+                data = response.json()
+                tasks = data.get('tasks', [])
+                
+                if tasks and len(tasks) > 0:
+                    task = tasks[0]
+                    task_result = task.get('result', [])
+                    
+                    if task_result and len(task_result) > 0:
+                        items = task_result[0].get('items', [])
+                        logger.info(f"DataForSEO returned {len(items)} shopping items")
+                        
+                        for item in items:
+                            item_type = item.get('type', '')
+                            
+                            # Handle different item types from DataForSEO
+                            if item_type == 'google_shopping_serp':
+                                price = item.get('price', None)
+                                title = item.get('title', '')
+                                seller_name = item.get('seller', '') or item.get('source', '') or 'Inconnu'
+                                product_url = item.get('url', '') or item.get('product_url', '')
+                                
+                                if price and price > 0:
+                                    item_is_amazon = is_amazon_url(product_url) or 'amazon' in seller_name.lower()
+                                    
+                                    google_suppliers.append({
+                                        'supplier_name': seller_name if seller_name else extract_supplier_name_from_url(product_url),
+                                        'url': product_url,
+                                        'price': round(price, 2),
+                                        'is_lowest': False,
+                                        'is_amazon': item_is_amazon,
+                                        'source': 'google_shopping'
+                                    })
+                            
+                            elif item_type == 'google_shopping_paid':
+                                price = item.get('price', None)
+                                seller_name = item.get('seller', '') or item.get('source', '') or 'Inconnu'
+                                product_url = item.get('url', '') or item.get('product_url', '')
+                                
+                                if price and price > 0:
+                                    item_is_amazon = is_amazon_url(product_url) or 'amazon' in seller_name.lower()
+                                    
+                                    google_suppliers.append({
+                                        'supplier_name': seller_name if seller_name else extract_supplier_name_from_url(product_url),
+                                        'url': product_url,
+                                        'price': round(price, 2),
+                                        'is_lowest': False,
+                                        'is_amazon': item_is_amazon,
+                                        'source': 'google_shopping'
+                                    })
+                            
+                            else:
+                                # Generic handling for other item types
+                                price = item.get('price', None) or item.get('price_from', None)
+                                if price and price > 0:
+                                    seller_name = item.get('seller', '') or item.get('source', '') or item.get('title', 'Inconnu')
+                                    product_url = item.get('url', '') or item.get('product_url', '')
+                                    item_is_amazon = is_amazon_url(product_url) or 'amazon' in str(seller_name).lower()
+                                    
+                                    google_suppliers.append({
+                                        'supplier_name': seller_name if seller_name else 'Inconnu',
+                                        'url': product_url,
+                                        'price': round(float(price), 2),
+                                        'is_lowest': False,
+                                        'is_amazon': item_is_amazon,
+                                        'source': 'google_shopping'
+                                    })
+                        
+                        # Mark lowest price
+                        if google_suppliers:
+                            lowest_price = min(s['price'] for s in google_suppliers)
+                            google_lowest_price = lowest_price
+                            for supplier in google_suppliers:
+                                if supplier['price'] == lowest_price:
+                                    supplier['is_lowest'] = True
+                                    break
+                            
+                            logger.info(f"DataForSEO found {len(google_suppliers)} suppliers, lowest: €{google_lowest_price}")
+                        else:
+                            logger.info(f"DataForSEO: no prices found for '{search_keyword}'")
+                    else:
+                        logger.info(f"DataForSEO: empty result for '{search_keyword}'")
+                else:
+                    logger.warning(f"DataForSEO: no tasks in response")
+            else:
+                logger.warning(f"DataForSEO API HTTP {response.status_code}: {response.text[:300]}")
+    
+    except Exception as e:
+        logger.warning(f"DataForSEO API error: {e}")
+    
+    return google_lowest_price, google_suppliers
+
+
 @api_router.post("/catalog/compare/{product_id}")
 async def compare_catalog_product(
     product_id: str,
