@@ -6,7 +6,7 @@ Debug script to check what products are actually in the catalog
 import requests
 import json
 
-BACKEND_URL = "https://metal-box-finder.preview.emergentagent.com/api"
+BACKEND_URL = "https://view-problem.preview.emergentagent.com/api"
 TEST_EMAIL = "flextest@test.com"
 TEST_PASSWORD = "test123"
 

@@ -7,7 +7,7 @@ import requests
 import json
 import uuid
 
-BASE_URL = "https://metal-box-finder.preview.emergentagent.com/api"
+BASE_URL = "https://view-problem.preview.emergentagent.com/api"
 
 def test_keepa_multi_domain():
     """Test the Keepa multi-domain search functionality"""
