@@ -1350,7 +1350,16 @@ const ProductComparisonDetail = ({ product, compareResult }) => {
             <h4 className="text-white font-semibold text-sm">Prix Amazon (Vente)</h4>
           </div>
           <p className="text-3xl font-bold text-amber-400">{amazonPrice ? `${amazonPrice.toFixed(2)}€` : <span className="text-zinc-500 text-lg">Non trouvé</span>}</p>
-          <p className="text-zinc-500 text-xs mt-1">Prix de vente sur Amazon</p>
+          <p className="text-zinc-500 text-xs mt-1">
+            {product.amazon_source_domain && product.amazon_source_domain !== 'Amazon.fr' && product.amazon_source_domain !== 'Mock'
+              ? `Trouvé sur ${product.amazon_source_domain}`
+              : 'Prix de vente sur Amazon'}
+          </p>
+          {product.amazon_source_domain && product.amazon_source_domain !== 'Amazon.fr' && product.amazon_source_domain !== 'Mock' && (
+            <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              {product.amazon_source_domain}
+            </span>
+          )}
           {amazonFees && (
             <div className="mt-3 pt-3 border-t border-zinc-700/50">
               <p className="text-zinc-400 text-xs">Frais Amazon (15% TTC) :</p>
