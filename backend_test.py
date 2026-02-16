@@ -1,423 +1,390 @@
 #!/usr/bin/env python3
 """
-Backend API Testing for Flexible Catalog Import Feature
-Tests that only GTIN and Price are required fields for catalog import.
-Name, Category, Brand are now optional fields.
+Backend Test Script - DataForSEO Google Shopping Integration
+Tests the new DataForSEO endpoints and authentication flow
 """
 
 import requests
 import json
 import sys
-import openpyxl
-from pathlib import Path
+from datetime import datetime
 
-# Backend URL from environment
+# Configuration
 BACKEND_URL = "https://price-id-import.preview.emergentagent.com/api"
-
-# Test authentication credentials for flexible catalog import testing
-TEST_EMAIL = "flextest@test.com"
-TEST_PASSWORD = "test123"
-TEST_NAME = "FlexTest"
+TEST_USER = {
+    "email": "dataforseo_test@test.com", 
+    "password": "test123",
+    "name": "DFSTest"
+}
 
 class BackendTester:
     def __init__(self):
-        self.auth_token = None
         self.session = requests.Session()
+        self.jwt_token = None
+        self.test_results = []
         
-    def log(self, message):
-        print(f"✓ {message}")
+    def log_result(self, test_name: str, success: bool, details: str = ""):
+        """Log test result"""
+        status = "✅ PASS" if success else "❌ FAIL"
+        print(f"{status}: {test_name}")
+        if details:
+            print(f"    {details}")
+        self.test_results.append({
+            "test": test_name,
+            "success": success,
+            "details": details,
+            "timestamp": datetime.now().isoformat()
+        })
+    
+    def make_request(self, method: str, endpoint: str, data=None, headers=None):
+        """Make HTTP request with error handling"""
+        url = f"{BACKEND_URL}{endpoint}"
+        if headers is None:
+            headers = {}
         
-    def error(self, message):
-        print(f"✗ {message}")
-        
-    def test_health_endpoint(self):
-        """Test health endpoint"""
+        if self.jwt_token:
+            headers['Authorization'] = f'Bearer {self.jwt_token}'
+            
         try:
-            response = self.session.get(f"{BACKEND_URL}/health")
-            if response.status_code == 200:
-                data = response.json()
-                if data.get("status") == "healthy":
-                    self.log("Health endpoint working correctly")
-                    return True
-                else:
-                    self.error(f"Health endpoint returned unexpected data: {data}")
-                    return False
+            if method.upper() == 'GET':
+                response = self.session.get(url, headers=headers)
+            elif method.upper() == 'POST':
+                headers['Content-Type'] = 'application/json'
+                response = self.session.post(url, json=data, headers=headers)
+            elif method.upper() == 'PUT':
+                headers['Content-Type'] = 'application/json'
+                response = self.session.put(url, json=data, headers=headers)
+            elif method.upper() == 'DELETE':
+                response = self.session.delete(url, headers=headers)
             else:
-                self.error(f"Health endpoint failed with status {response.status_code}: {response.text}")
-                return False
-        except Exception as e:
-            self.error(f"Health endpoint test failed: {e}")
-            return False
-            
-    def authenticate(self):
-        """Register or login user and get auth token"""
-        try:
-            # Try to register first
-            register_data = {
-                "email": TEST_EMAIL,
-                "password": TEST_PASSWORD,
-                "name": TEST_NAME
-            }
-            
-            response = self.session.post(f"{BACKEND_URL}/auth/register", json=register_data)
-            
-            if response.status_code in [200, 201]:
-                data = response.json()
-                self.auth_token = data.get("token")
-                self.log(f"User registered successfully: {data.get('user', {}).get('email')}")
-                return True
-            elif response.status_code == 400 and ("already exists" in response.text.lower() or "already registered" in response.text.lower()):
-                # User already exists, try to login
-                login_data = {
-                    "email": TEST_EMAIL,
-                    "password": TEST_PASSWORD
-                }
+                raise ValueError(f"Unsupported method: {method}")
                 
-                response = self.session.post(f"{BACKEND_URL}/auth/login", json=login_data)
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    self.auth_token = data.get("token")
-                    self.log(f"User logged in successfully: {data.get('user', {}).get('email')}")
-                    return True
-                else:
-                    self.error(f"Login failed with status {response.status_code}: {response.text}")
-                    return False
-            else:
-                self.error(f"Registration failed with status {response.status_code}: {response.text}")
-                return False
-                
-        except Exception as e:
-            self.error(f"Authentication failed: {e}")
-            return False
-    
-    def get_headers(self):
-        """Get headers with auth token"""
-        if not self.auth_token:
-            return {}
-        return {"Authorization": f"Bearer {self.auth_token}"}
-    
-    def cleanup_catalog(self):
-        """Clean up existing catalog data before testing"""
-        try:
-            response = self.session.delete(
-                f"{BACKEND_URL}/catalog/products",
-                headers=self.get_headers()
-            )
-            
-            if response.status_code in [200, 404]:
-                self.log("✓ Catalog cleaned up for fresh testing")
-                return True
-            else:
-                self.log(f"Catalog cleanup returned status {response.status_code} (continuing anyway)")
-                return True  # Don't fail the test if cleanup fails
-                
-        except Exception as e:
-            self.log(f"Catalog cleanup failed: {e} (continuing anyway)")
-            return True  # Don't fail the test if cleanup fails
-    
-    def create_minimal_excel_file(self):
-        """Create a minimal Excel file with just EAN and price columns"""
-        try:
-            wb = openpyxl.Workbook()
-            ws = wb.active
-            ws.append(['EAN', 'prix_achat'])
-            ws.append(['8718951388574', 5.99])
-            ws.append(['3014260033279', 3.50])
-            
-            file_path = '/tmp/test_minimal.xlsx'
-            wb.save(file_path)
-            self.log(f"Created minimal test Excel file: {file_path}")
-            return file_path
-        except Exception as e:
-            self.error(f"Failed to create minimal Excel file: {e}")
+            return response
+        except requests.exceptions.RequestException as e:
+            print(f"Request failed: {e}")
             return None
-    
-    def test_catalog_preview_flexible_fields(self):
-        """Test catalog preview endpoint returns correct required/optional fields"""
+
+    def test_auth_registration(self):
+        """Test user registration"""
         try:
-            # Use existing catalog sample file first
-            test_file_path = Path("/app/catalog_sample.xlsx")
-            if not test_file_path.exists():
-                test_file_path = Path("/app/test_catalog.xlsx")
-                if not test_file_path.exists():
-                    self.error("No test catalog file found at /app/catalog_sample.xlsx or /app/test_catalog.xlsx")
-                    return False
+            response = self.make_request('POST', '/auth/register', TEST_USER)
             
-            # Upload file for preview
-            with open(test_file_path, "rb") as f:
-                files = {"file": (test_file_path.name, f, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
-                
-                response = self.session.post(
-                    f"{BACKEND_URL}/catalog/preview",
-                    files=files,
-                    headers=self.get_headers()
-                )
-            
-            if response.status_code == 200:
+            if response and response.status_code in [200, 201]:
                 data = response.json()
-                
-                # Validate response structure includes new flexible field structure
-                expected_keys = ["columns", "sample_data", "total_rows", "suggested_mapping", "required_fields", "optional_fields"]
-                for key in expected_keys:
-                    if key not in data:
-                        self.error(f"Preview response missing key: {key}")
-                        return False
-                
-                required_fields = data["required_fields"]
-                optional_fields = data["optional_fields"]
-                
-                self.log(f"Preview successful - Required fields: {required_fields}")
-                self.log(f"Optional fields: {optional_fields}")
-                
-                # CRITICAL TEST: Verify required_fields contains ONLY ['GTIN', 'Price']
-                expected_required = ['GTIN', 'Price']
-                if required_fields == expected_required:
-                    self.log(f"✅ CRITICAL: Required fields correct: {required_fields}")
+                if 'token' in data:
+                    self.jwt_token = data['token']
+                    self.log_result("User Registration", True, f"User registered successfully, JWT received")
+                    return True
                 else:
-                    self.error(f"❌ CRITICAL: Required fields incorrect! Expected: {expected_required}, Got: {required_fields}")
+                    self.log_result("User Registration", False, "No JWT token in response")
                     return False
-                
-                # CRITICAL TEST: Verify optional_fields includes Name, Category, Brand, Image
-                expected_optional = ['Name', 'Category', 'Brand', 'Image']
-                for field in expected_optional:
-                    if field in optional_fields:
-                        self.log(f"✅ Optional field present: {field}")
-                    else:
-                        self.error(f"❌ Missing expected optional field: {field}")
-                        return False
-                
-                return True
-                
+            elif response and response.status_code == 400:
+                # User might already exist, try login instead
+                return self.test_auth_login()
             else:
-                self.error(f"Catalog preview failed with status {response.status_code}: {response.text}")
+                status = response.status_code if response else "No response"
+                self.log_result("User Registration", False, f"Registration failed with status {status}")
                 return False
                 
         except Exception as e:
-            self.error(f"Catalog preview test failed: {e}")
+            self.log_result("User Registration", False, f"Exception: {str(e)}")
             return False
-    
-    def test_catalog_import_minimal_fields(self):
-        """Test catalog import with ONLY GTIN and Price mapped (no Name, Category, Brand)"""
+
+    def test_auth_login(self):
+        """Test user login as fallback"""
         try:
-            # Create minimal Excel file with just EAN and price columns
-            minimal_file_path = self.create_minimal_excel_file()
-            if not minimal_file_path:
-                return False
+            login_data = {"email": TEST_USER["email"], "password": TEST_USER["password"]}
+            response = self.make_request('POST', '/auth/login', login_data)
             
-            # Test import with ONLY GTIN and Price mapped (other fields should get defaults)
-            minimal_mapping = {
-                'GTIN': 'EAN',
-                'Price': 'prix_achat'
-                # Deliberately omitting Name, Category, Brand - they should get 'Non spécifié' defaults
+            if response and response.status_code == 200:
+                data = response.json()
+                if 'token' in data:
+                    self.jwt_token = data['token']
+                    self.log_result("User Login (fallback)", True, "Login successful, JWT received")
+                    return True
+                else:
+                    self.log_result("User Login (fallback)", False, "No JWT token in login response")
+                    return False
+            else:
+                status = response.status_code if response else "No response"
+                self.log_result("User Login (fallback)", False, f"Login failed with status {status}")
+                return False
+                
+        except Exception as e:
+            self.log_result("User Login (fallback)", False, f"Exception: {str(e)}")
+            return False
+
+    def test_get_api_keys_initial(self):
+        """Test GET /api/settings/api-keys - check initial state"""
+        try:
+            response = self.make_request('GET', '/settings/api-keys')
+            
+            if response and response.status_code == 200:
+                data = response.json()
+                
+                # Check for all required fields
+                required_fields = [
+                    'google_api_key_set', 'google_search_engine_id_set', 'keepa_api_key_set',
+                    'dataforseo_login_set', 'dataforseo_password_set', 'use_google_shopping'
+                ]
+                
+                missing_fields = [field for field in required_fields if field not in data]
+                
+                if missing_fields:
+                    self.log_result("GET /api/settings/api-keys - Initial State", False, 
+                                  f"Missing fields: {missing_fields}")
+                    return False
+                
+                # Check initial values - should all be false initially
+                if (data['dataforseo_login_set'] == False and 
+                    data['dataforseo_password_set'] == False and 
+                    data['use_google_shopping'] == False):
+                    self.log_result("GET /api/settings/api-keys - Initial State", True, 
+                                  f"All DataForSEO fields are false initially as expected: {data}")
+                    return True
+                else:
+                    self.log_result("GET /api/settings/api-keys - Initial State", False, 
+                                  f"Unexpected initial values: {data}")
+                    return False
+                    
+            else:
+                status = response.status_code if response else "No response"
+                self.log_result("GET /api/settings/api-keys - Initial State", False, 
+                              f"Request failed with status {status}")
+                return False
+                
+        except Exception as e:
+            self.log_result("GET /api/settings/api-keys - Initial State", False, f"Exception: {str(e)}")
+            return False
+
+    def test_save_dataforseo_credentials(self):
+        """Test PUT /api/settings/api-keys - Save DataForSEO credentials"""
+        try:
+            credentials = {
+                "dataforseo_login": "test_login",
+                "dataforseo_password": "test_pass"
             }
             
-            self.log(f"Testing minimal import with only required fields mapped: {minimal_mapping}")
+            response = self.make_request('PUT', '/settings/api-keys', credentials)
             
-            # Test import with minimal mapping
-            with open(minimal_file_path, "rb") as f:
-                files = {"file": ("test_minimal.xlsx", f, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
-                data = {"column_mapping_json": json.dumps(minimal_mapping)}
-                
-                response = self.session.post(
-                    f"{BACKEND_URL}/catalog/import",
-                    files=files,
-                    data=data,
-                    headers=self.get_headers()
-                )
-            
-            if response.status_code == 200:
+            if response and response.status_code == 200:
                 data = response.json()
                 
-                # Validate response structure
-                expected_keys = ["success", "imported", "skipped", "total"]
-                for key in expected_keys:
-                    if key not in data:
-                        self.error(f"Import response missing key: {key}")
-                        return False
-                
-                if data["success"]:
-                    imported = data["imported"]
-                    skipped = data["skipped"]
-                    total = data["total"]
-                    
-                    self.log(f"✅ CRITICAL: Minimal catalog import successful: {imported} imported, {skipped} skipped, {total} total")
-                    
-                    # Should have imported 2 products from minimal file
-                    if imported == 2:
-                        self.log(f"✅ Successfully imported all {imported} products with only GTIN+Price mapping")
-                        
-                        # Verify products were imported with 'Non spécifié' defaults
-                        return self.verify_minimal_imported_products()
-                    else:
-                        self.error(f"Expected to import 2 products, but imported {imported}")
-                        return False
+                if (data.get('dataforseo_login_set') == True and 
+                    data.get('dataforseo_password_set') == True):
+                    self.log_result("PUT /api/settings/api-keys - Save DataForSEO credentials", True, 
+                                  f"DataForSEO credentials saved: login_set={data['dataforseo_login_set']}, password_set={data['dataforseo_password_set']}")
+                    return True
                 else:
-                    self.error(f"Import marked as not successful: {data}")
+                    self.log_result("PUT /api/settings/api-keys - Save DataForSEO credentials", False, 
+                                  f"DataForSEO flags not set correctly: {data}")
                     return False
                     
             else:
-                self.error(f"❌ CRITICAL: Minimal catalog import failed with status {response.status_code}: {response.text}")
+                status = response.status_code if response else "No response"
+                self.log_result("PUT /api/settings/api-keys - Save DataForSEO credentials", False, 
+                              f"Request failed with status {status}")
                 return False
                 
         except Exception as e:
-            self.error(f"Minimal catalog import test failed: {e}")
+            self.log_result("PUT /api/settings/api-keys - Save DataForSEO credentials", False, f"Exception: {str(e)}")
             return False
-    
-    def verify_minimal_imported_products(self):
-        """Verify that minimal products were imported with 'Non spécifié' defaults"""
+
+    def test_toggle_google_search_mode_to_shopping(self):
+        """Test PUT /api/settings/google-search-mode - Toggle to Google Shopping"""
         try:
-            response = self.session.get(
-                f"{BACKEND_URL}/catalog/products",
-                headers=self.get_headers()
-            )
+            response = self.make_request('PUT', '/settings/google-search-mode')
             
-            if response.status_code == 200:
+            if response and response.status_code == 200:
                 data = response.json()
-                products = data.get("products", [])
                 
-                if len(products) >= 2:
-                    self.log(f"✓ Found {len(products)} products in catalog")
+                if (data.get('use_google_shopping') == True and 
+                    data.get('mode') == 'google_shopping'):
+                    self.log_result("PUT /api/settings/google-search-mode - Toggle to Shopping", True, 
+                                  f"Successfully toggled to Google Shopping: {data}")
+                    return True
+                else:
+                    self.log_result("PUT /api/settings/google-search-mode - Toggle to Shopping", False, 
+                                  f"Toggle failed: {data}")
+                    return False
                     
-                    # Check for specific test products with 'Non spécifié' defaults
-                    expected_gtins = ['8718951388574', '3014260033279']
+            else:
+                status = response.status_code if response else "No response"
+                self.log_result("PUT /api/settings/google-search-mode - Toggle to Shopping", False, 
+                              f"Request failed with status {status}")
+                return False
+                
+        except Exception as e:
+            self.log_result("PUT /api/settings/google-search-mode - Toggle to Shopping", False, f"Exception: {str(e)}")
+            return False
+
+    def test_toggle_google_search_mode_to_search(self):
+        """Test PUT /api/settings/google-search-mode - Toggle back to Google Search"""
+        try:
+            response = self.make_request('PUT', '/settings/google-search-mode')
+            
+            if response and response.status_code == 200:
+                data = response.json()
+                
+                if (data.get('use_google_shopping') == False and 
+                    data.get('mode') == 'google_search'):
+                    self.log_result("PUT /api/settings/google-search-mode - Toggle to Search", True, 
+                                  f"Successfully toggled back to Google Search: {data}")
+                    return True
+                else:
+                    self.log_result("PUT /api/settings/google-search-mode - Toggle to Search", False, 
+                                  f"Toggle failed: {data}")
+                    return False
                     
-                    found_products = 0
-                    for expected_gtin in expected_gtins:
-                        for product in products:
-                            product_gtin = product.get("gtin")
-                            # Handle GTIN stored as string or float
-                            if product_gtin == expected_gtin or product_gtin == f"{expected_gtin}.0":
-                                found_products += 1
-                                
-                                # CRITICAL TEST: Verify default values for unmapped fields
-                                name = product.get("name")
-                                category = product.get("category")
-                                brand = product.get("brand")
-                                price = product.get("supplier_price_eur")
-                                
-                                self.log(f"Product {expected_gtin}: name='{name}', category='{category}', brand='{brand}', price={price}€")
-                                
-                                # Check that unmapped fields have 'Non spécifié' default
-                                if name == 'Non spécifié':
-                                    self.log(f"✅ CRITICAL: Product {expected_gtin} has correct default name: '{name}'")
-                                else:
-                                    self.error(f"❌ CRITICAL: Product {expected_gtin} should have name='Non spécifié', got '{name}'")
-                                    return False
-                                    
-                                if category == 'Non spécifié':
-                                    self.log(f"✅ CRITICAL: Product {expected_gtin} has correct default category: '{category}'")
-                                else:
-                                    self.error(f"❌ CRITICAL: Product {expected_gtin} should have category='Non spécifié', got '{category}'")
-                                    return False
-                                    
-                                if brand == 'Non spécifié':
-                                    self.log(f"✅ CRITICAL: Product {expected_gtin} has correct default brand: '{brand}'")
-                                else:
-                                    self.error(f"❌ CRITICAL: Product {expected_gtin} should have brand='Non spécifié', got '{brand}'")
-                                    return False
-                                
-                                # Check that price was imported correctly (allowing for exchange rate conversion)
-                                expected_gbp_price = 5.99 if expected_gtin == '8718951388574' else 3.50
-                                # Exchange rate is typically around 1.15 GBP->EUR
-                                expected_eur_price = expected_gbp_price * 1.15
-                                # Allow for reasonable conversion/rounding differences
-                                if abs(price - expected_eur_price) < 0.5:
-                                    self.log(f"✅ Product {expected_gtin} has correct price: {price}€ (from {expected_gbp_price} GBP)")
-                                else:
-                                    self.log(f"ℹ️  Product {expected_gtin} price {price}€ (from {expected_gbp_price} GBP) - accepting as exchange rate conversion")
-                                
-                                break
+            else:
+                status = response.status_code if response else "No response"
+                self.log_result("PUT /api/settings/google-search-mode - Toggle to Search", False, 
+                              f"Request failed with status {status}")
+                return False
+                
+        except Exception as e:
+            self.log_result("PUT /api/settings/google-search-mode - Toggle to Search", False, f"Exception: {str(e)}")
+            return False
+
+    def test_verify_toggle_persistence(self):
+        """Test that toggle state persists by checking GET /api/settings/api-keys"""
+        try:
+            response = self.make_request('GET', '/settings/api-keys')
+            
+            if response and response.status_code == 200:
+                data = response.json()
+                
+                # Should be false after previous toggle back to search
+                if data.get('use_google_shopping') == False:
+                    self.log_result("Verify Toggle Persistence", True, 
+                                  f"Toggle state persisted correctly: use_google_shopping={data['use_google_shopping']}")
+                    return True
+                else:
+                    self.log_result("Verify Toggle Persistence", False, 
+                                  f"Toggle state not persisted: {data}")
+                    return False
                     
-                    if found_products == 2:
-                        self.log("✅ CRITICAL: All minimal test products imported correctly with 'Non spécifié' defaults")
+            else:
+                status = response.status_code if response else "No response"
+                self.log_result("Verify Toggle Persistence", False, 
+                              f"Request failed with status {status}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Verify Toggle Persistence", False, f"Exception: {str(e)}")
+            return False
+
+    def test_toggle_to_shopping_and_verify(self):
+        """Test toggling to shopping mode and verifying persistence"""
+        try:
+            # Toggle to shopping
+            response = self.make_request('PUT', '/settings/google-search-mode')
+            
+            if response and response.status_code == 200:
+                data = response.json()
+                
+                if data.get('use_google_shopping') != True:
+                    self.log_result("Toggle to Shopping and Verify", False, 
+                                  f"Failed to toggle to shopping: {data}")
+                    return False
+                
+                # Verify persistence with GET request
+                get_response = self.make_request('GET', '/settings/api-keys')
+                
+                if get_response and get_response.status_code == 200:
+                    get_data = get_response.json()
+                    
+                    if get_data.get('use_google_shopping') == True:
+                        self.log_result("Toggle to Shopping and Verify", True, 
+                                      f"Toggle to shopping persisted correctly: use_google_shopping={get_data['use_google_shopping']}")
                         return True
                     else:
-                        self.error(f"Only found {found_products}/2 expected products in catalog")
+                        self.log_result("Toggle to Shopping and Verify", False, 
+                                      f"Toggle to shopping not persisted: {get_data}")
                         return False
                 else:
-                    self.error(f"Expected at least 2 products in catalog, found {len(products)}")
+                    self.log_result("Toggle to Shopping and Verify", False, 
+                                  "Failed to verify persistence with GET request")
                     return False
+                    
             else:
-                self.error(f"Failed to retrieve catalog products: {response.status_code}")
+                status = response.status_code if response else "No response"
+                self.log_result("Toggle to Shopping and Verify", False, 
+                              f"Toggle request failed with status {status}")
                 return False
                 
         except Exception as e:
-            self.error(f"Minimal product verification failed: {e}")
+            self.log_result("Toggle to Shopping and Verify", False, f"Exception: {str(e)}")
             return False
-    
+
+    def test_clear_dataforseo_keys(self):
+        """Test PUT /api/settings/api-keys - Clear DataForSEO credentials"""
+        try:
+            clear_data = {
+                "dataforseo_login": ""
+            }
+            
+            response = self.make_request('PUT', '/settings/api-keys', clear_data)
+            
+            if response and response.status_code == 200:
+                data = response.json()
+                
+                if data.get('dataforseo_login_set') == False:
+                    self.log_result("PUT /api/settings/api-keys - Clear DataForSEO keys", True, 
+                                  f"DataForSEO login cleared successfully: login_set={data['dataforseo_login_set']}")
+                    return True
+                else:
+                    self.log_result("PUT /api/settings/api-keys - Clear DataForSEO keys", False, 
+                                  f"DataForSEO login not cleared: {data}")
+                    return False
+                    
+            else:
+                status = response.status_code if response else "No response"
+                self.log_result("PUT /api/settings/api-keys - Clear DataForSEO keys", False, 
+                              f"Request failed with status {status}")
+                return False
+                
+        except Exception as e:
+            self.log_result("PUT /api/settings/api-keys - Clear DataForSEO keys", False, f"Exception: {str(e)}")
+            return False
+
     def run_all_tests(self):
-        """Run all flexible catalog import tests"""
-        print("🧪 Starting Flexible Catalog Import Testing")
-        print("Testing that only GTIN and Price are required fields")
-        print("=" * 60)
+        """Run all DataForSEO integration tests"""
+        print("=" * 80)
+        print("BACKEND TESTING - DataForSEO Google Shopping Integration")
+        print("=" * 80)
         
-        # Test 1: Health check
-        print("\n1. Testing Health Endpoint")
-        health_ok = self.test_health_endpoint()
+        test_methods = [
+            self.test_auth_registration,
+            self.test_get_api_keys_initial,
+            self.test_save_dataforseo_credentials,
+            self.test_toggle_google_search_mode_to_shopping,
+            self.test_toggle_google_search_mode_to_search,
+            self.test_verify_toggle_persistence,
+            self.test_toggle_to_shopping_and_verify,
+            self.test_clear_dataforseo_keys
+        ]
         
-        # Test 2: Authentication with new test user
-        print("\n2. Authentication (flextest@test.com)")
-        auth_ok = self.authenticate() if health_ok else False
+        passed = 0
+        total = len(test_methods)
         
-        # Test 2.5: Cleanup existing catalog
-        print("\n2.5. Cleaning up existing catalog")
-        cleanup_ok = self.cleanup_catalog() if auth_ok else False
+        for test_method in test_methods:
+            success = test_method()
+            if success:
+                passed += 1
+            print()  # Add spacing between tests
+            
+        print("=" * 80)
+        print(f"TEST SUMMARY: {passed}/{total} tests passed")
         
-        # Test 3: Catalog Preview - Check Required/Optional Fields
-        print("\n3. Testing Catalog Preview - Required/Optional Fields Structure")
-        preview_ok = self.test_catalog_preview_flexible_fields() if auth_ok and cleanup_ok else False
-        
-        # Test 4: Minimal Catalog Import - GTIN + Price Only
-        print("\n4. CRITICAL TEST: Import with Only GTIN + Price Mapped")
-        minimal_import_ok = self.test_catalog_import_minimal_fields() if auth_ok and cleanup_ok else False
-        
-        # Test 5: Verify products have 'Non spécifié' defaults
-        print("\n5. Verified products have correct default values")
-        # This is already included in minimal_import_ok verification
-        
-        # Summary
-        print("\n" + "=" * 60)
-        print("📋 Flexible Catalog Import Test Summary:")
-        print(f"Health Endpoint: {'✅' if health_ok else '❌'}")
-        print(f"Authentication: {'✅' if auth_ok else '❌'}")
-        print(f"Required/Optional Fields Structure: {'✅' if preview_ok else '❌'}")
-        print(f"MINIMAL Import (GTIN+Price only): {'✅' if minimal_import_ok else '❌'}")
-        
-        total_tests = 4
-        passed_tests = sum([health_ok, auth_ok, preview_ok, minimal_import_ok])
-        
-        print(f"\nOverall: {passed_tests}/{total_tests} tests passed")
-        
-        # Critical results
-        if preview_ok and minimal_import_ok:
-            print("\n🎉 FLEXIBLE CATALOG IMPORT FEATURE: ✅ WORKING")
-            print("✅ Only GTIN and Price are required")
-            print("✅ Name, Category, Brand are optional with 'Non spécifié' defaults")
+        if passed == total:
+            print("🎉 ALL TESTS PASSED - DataForSEO integration working correctly!")
+            return True
         else:
-            print("\n❌ FLEXIBLE CATALOG IMPORT FEATURE: FAILED")
-            if not preview_ok:
-                print("❌ Preview endpoint doesn't return correct required/optional fields")
-            if not minimal_import_ok:
-                print("❌ Import with only GTIN+Price fails or doesn't set proper defaults")
-        
-        return {
-            "health": health_ok,
-            "authentication": auth_ok,
-            "preview": preview_ok,
-            "minimal_import": minimal_import_ok,
-            "total_passed": passed_tests,
-            "total_tests": total_tests
-        }
+            print("❌ SOME TESTS FAILED - Check the details above")
+            return False
 
 if __name__ == "__main__":
     tester = BackendTester()
-    results = tester.run_all_tests()
-    
-    # Exit with error code if any critical tests failed
-    if not results["health"] or not results["authentication"]:
-        sys.exit(1)
-    elif not results["preview"] or not results["minimal_import"]:
-        sys.exit(2)  # Flexible catalog import failures
-    else:
-        sys.exit(0)  # All tests passed
+    success = tester.run_all_tests()
+    sys.exit(0 if success else 1)
