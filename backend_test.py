@@ -11,7 +11,7 @@ import sys
 import uuid
 
 # Configuration
-BASE_URL = "https://view-problem.preview.emergentagent.com/api"
+BASE_URL = "https://keepa-dermo-test.preview.emergentagent.com/api"
 TEST_EMAIL = f"keepatest_{uuid.uuid4().hex[:8]}@test.com"
 TEST_PASSWORD = "TestPassword123!"
 TEST_NAME = "Keepa Test User"
