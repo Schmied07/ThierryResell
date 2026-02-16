@@ -1054,10 +1054,10 @@ agent_communication:
   - agent: "testing"
     message: "✅ FLEXIBLE CATALOG IMPORT FEATURE TESTING COMPLETE - ALL TESTS PASSED: 1) Authentication working with flextest@test.com test user. 2) POST /api/catalog/preview with /app/catalog_sample.xlsx returns required_fields=['GTIN', 'Price'] (NOT 5 fields) and optional_fields includes Name, Category, Brand, Image as expected. 3) Created minimal Excel file with just EAN and prix_achat columns. 4) POST /api/catalog/import with column_mapping_json={'GTIN': 'EAN', 'Price': 'prix_achat'} successfully imports 2 products (8718951388574 and 3014260033279). 5) GET /api/catalog/products verified all imported products have correct 'Non spécifié' defaults for unmapped Name, Category, Brand fields. Prices correctly converted from GBP to EUR (5.99→6.89€, 3.50→4.02€). FLEXIBLE CATALOG IMPORT FEATURE IS FULLY WORKING - only GTIN and Price are required, optional fields get proper defaults."
 
-user_problem_statement: "Améliorer l'affichage du catalogue: 1) Afficher les images des produits dans une colonne séparée en première position 2) Afficher les noms de produits en entier sans troncature 3) Les images ne sont pas obligatoires"
+user_problem_statement: "Quand on fait la recherche sur keepa pour un produit (ex: Gebäckdosen Kindermotiv 3er Set aus Metall), plusieurs résultats apparaissent sur Keepa directement mais l'API de l'application ne renvoie aucune réponse."
 
 backend:
-  - task: "Catalog preview - openpyxl dependency fix"
+  - task: "Keepa multi-domain search - Search across multiple Amazon marketplaces"
     implemented: true
     working: "NA"
     file: "backend/server.py"
@@ -1067,50 +1067,47 @@ backend:
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "BUGFIX: Installed et-xmlfile dependency for openpyxl. The catalog preview was failing with 'Import openpyxl failed' error. Now openpyxl imports successfully and pandas can read Excel files."
+        comment: "BUGFIX: The Keepa search was hardcoded to domain=4 (Amazon.fr) only. Products like German items exist on Amazon.de but not Amazon.fr, causing empty results. Created search_keepa_product_multi_domain() helper that tries: FR(4)→DE(3)→IT(8)→ES(9)→UK(2)→US(1). Created extract_keepa_price() helper for consistent price extraction. Updated compare_catalog_product and search_by_text endpoints to use multi-domain search. Also fixed multi-market arbitrage MARKETS dict: FR was domain 1 (US!) instead of 4, ES was domain 4 (FR!) instead of 9. Added amazon_source_domain field to track which marketplace the product was found on."
+
+  - task: "Multi-market arbitrage domain IDs fix"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "BUGFIX: Fixed wrong Keepa domain IDs in MARKETS dict. FR had domain=1 (which is US!) → corrected to domain=4. ES had domain=4 (which is FR!) → corrected to domain=9. Keepa domain mapping: 1=US, 2=UK, 3=DE, 4=FR, 5=JP, 6=CA, 7=CN, 8=IT, 9=ES."
 
 frontend:
-  - task: "Colonne Image séparée - Affichage des images en première position"
+  - task: "Amazon source domain display"
     implemented: true
     working: "NA"
     file: "frontend/src/pages/Catalog.jsx"
     stuck_count: 0
-    priority: "high"
+    priority: "medium"
     needs_retesting: true
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "NOUVELLE FONCTIONNALITÉ: Ajout d'une colonne Image dédiée en première position après la checkbox. Images affichées en 64x64px (au lieu de 40x40px) avec bordure et centrage. Placeholder élégant avec icône Package si aucune image. Les images ne sont pas obligatoires."
-
-  - task: "Noms de produits complets - Suppression de la troncature"
-    implemented: true
-    working: "NA"
-    file: "frontend/src/pages/Catalog.jsx"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: true
-    status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "AMÉLIORATION: Suppression de la classe 'truncate' sur les noms de produits. Les noms s'affichent maintenant en entier avec break-words et leading-relaxed pour un affichage multi-lignes propre. Largeur max augmentée à 350px. Ajout d'un attribut title pour afficher le nom complet au survol."
+        comment: "ENHANCEMENT: When a product is found on a non-FR Amazon marketplace (e.g. Amazon.de), the source domain is displayed in the product table and detail view. Shows a badge like 'Amazon.de' next to the price."
 
 metadata:
   created_by: "main_agent"
-  version: "1.0"
-  test_sequence: 0
-  run_ui: true
+  version: "4.0"
+  test_sequence: 1
+  run_ui: false
 
 test_plan:
   current_focus:
-    - "Colonne Image séparée - Affichage des images en première position"
-    - "Noms de produits complets - Suppression de la troncature"
+    - "Keepa multi-domain search - Search across multiple Amazon marketplaces"
+    - "Multi-market arbitrage domain IDs fix"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
   - agent: "main"
-    message: "AMÉLIORATIONS VISUELLES DU CATALOGUE IMPLÉMENTÉES: 1) ✅ Colonne Image séparée: Nouvelle colonne dédiée aux images en première position du tableau (après checkbox). Images 64x64px centrées avec bordure. Placeholder si pas d'image. 2) ✅ Noms complets: Suppression de la troncature 'truncate'. Noms affichés en entier avec wrap multi-lignes, break-words, et leading-relaxed. Largeur max 350px. Attribut title pour tooltip au survol. 3) ✅ Images non obligatoires confirmé. Prêt pour test frontend UI avec auto_frontend_testing_agent."
-
-  - agent: "main"
-    message: "NEW FEATURE: Google Shopping via DataForSEO integration. Backend: 1) Added dataforseo_login/dataforseo_password to API keys model. 2) Added use_google_shopping toggle per user. 3) PUT /api/settings/google-search-mode toggles between Google Search and Google Shopping. 4) New function search_google_shopping_dataforseo() calls DataForSEO Merchant API /v3/merchant/google/products/live. 5) In compare_catalog_product, if use_google_shopping=true and DataForSEO creds exist, uses DataForSEO; otherwise uses Google Custom Search. Frontend: Settings page updated with toggle UI and DataForSEO login/password fields. Please test: 1) GET /api/settings/api-keys should return new fields (dataforseo_login_set, dataforseo_password_set, use_google_shopping). 2) PUT /api/settings/api-keys with dataforseo_login/password. 3) PUT /api/settings/google-search-mode to toggle. 4) Toggle should persist per user."
+    message: "BUGFIX KEEPA MULTI-DOMAIN: Le problème était que la recherche Keepa était limitée à Amazon.fr (domain=4). Les produits comme 'Gebäckdosen Kindermotiv 3er Set aus Metall' existent sur Amazon.de mais pas Amazon.fr. FIX: 1) Nouvelle fonction search_keepa_product_multi_domain() qui essaie: FR→DE→IT→ES→UK→US pour GTIN ET pour recherche par nom. 2) Nouvelle fonction extract_keepa_price() pour extraction cohérente des prix. 3) Mise à jour des endpoints compare_catalog_product et search_by_text. 4) Correction des domain IDs dans multi-market arbitrage (FR=1→4, ES=4→9). 5) Nouveau champ amazon_source_domain dans la réponse API et la DB. Test: POST /api/catalog/compare/{product_id} devrait maintenant trouver des produits qui n'étaient pas trouvés avant sur Amazon.fr seul. Le health endpoint est OK."
