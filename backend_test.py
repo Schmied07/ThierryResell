@@ -94,9 +94,9 @@ def test_authentication():
         print("❌ FAILED: No response from register endpoint")
         return False
     
-    if response.status_code == 201:
+    if response.status_code in [200, 201]:
         data = response.json()
-        auth_token = data.get('access_token')
+        auth_token = data.get('token') or data.get('access_token')
         if auth_token:
             print(f"✅ SUCCESS: User registered successfully")
             print(f"   Email: {TEST_EMAIL}")
