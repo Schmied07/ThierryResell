@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-02-16T16:49:38.134254",
+  "tests": [
+    {
+      "name": "Sanex Dermo Invisible (EAN trouvé sur Amazon.fr)",
+      "ean": "8710447348741",
+      "domain": 4,
+      "domain_name": "Amazon.fr"
+    },
+    {
+      "name": "Nutella 750g (EAN)",
+      "ean": "8000500217566",
+      "domain": 4,
+      "domain_name": "Amazon.fr"
+    },
+    {
+      "name": "Nivea Creme (EAN)",
+      "ean": "4005808891771",
+      "domain": 4,
+      "domain_name": "Amazon.fr"
+    },
+    {
+      "name": "iPhone 15 Pro (ASIN Amazon.fr)",
+      "asin": "B0CHX1W1XY",
+      "domain": 4,
+      "domain_name": "Amazon.fr"
+    }
+  ],
+  "results": [],
+  "success_count": 0,
+  "total_tests": 4
+}
