@@ -736,23 +736,40 @@ async def search_keepa_product_multi_domain(
                     asin_list = search_data.get('asinList', [])
                     
                     if asin_list and len(asin_list) > 0:
-                        # Get product details for the first ASIN found
-                        detail_response = await http_client.get(
-                            "https://api.keepa.com/product",
-                            params={
-                                "key": keepa_key,
-                                "domain": domain_id,
-                                "asin": asin_list[0],
-                                "stats": 1,
-                            },
-                            timeout=30
-                        )
-                        if detail_response.status_code == 200:
-                            detail_data = detail_response.json()
-                            if detail_data.get('products') and len(detail_data['products']) > 0:
-                                keepa_product = detail_data['products'][0]
-                                logger.info(f"✅ Keepa found ASIN {keepa_product.get('asin', 'N/A')} via name search on {domain_name}")
-                                return keepa_product, domain_info
+                        logger.info(f"Keepa: found {len(asin_list)} ASINs for '{search_term}' on {domain_name}")
+                        
+                        # Try multiple ASINs (up to 5) to find one with a valid price
+                        asins_to_try = asin_list[:5]  # Limit to first 5 to avoid too many API calls
+                        
+                        for idx, asin in enumerate(asins_to_try):
+                            try:
+                                detail_response = await http_client.get(
+                                    "https://api.keepa.com/product",
+                                    params={
+                                        "key": keepa_key,
+                                        "domain": domain_id,
+                                        "asin": asin,
+                                        "stats": 1,
+                                    },
+                                    timeout=30
+                                )
+                                if detail_response.status_code == 200:
+                                    detail_data = detail_response.json()
+                                    if detail_data.get('products') and len(detail_data['products']) > 0:
+                                        keepa_product = detail_data['products'][0]
+                                        # Check if this product has a valid price
+                                        price = extract_keepa_price(keepa_product)
+                                        if price is not None and price > 0:
+                                            logger.info(f"✅ Keepa found ASIN {keepa_product.get('asin', 'N/A')} (result {idx+1}/{len(asin_list)}) with price {price} on {domain_name}")
+                                            return keepa_product, domain_info
+                                        else:
+                                            logger.info(f"Keepa: ASIN {asin} (result {idx+1}) has no valid price, trying next...")
+                            except Exception as e:
+                                logger.warning(f"Keepa: error getting details for ASIN {asin}: {e}")
+                                continue
+                        
+                        # If we tried all ASINs but none had a valid price
+                        logger.info(f"Keepa: checked {len(asins_to_try)} ASINs on {domain_name} but none had valid prices")
                     else:
                         logger.info(f"Keepa: no results for name search on {domain_name}")
                 elif search_response.status_code == 429:
