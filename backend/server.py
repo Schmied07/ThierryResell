@@ -2405,6 +2405,9 @@ async def compare_catalog_product(
     keepa_key = api_keys.get('keepa_api_key')
     google_key = api_keys.get('google_api_key')
     google_cx = api_keys.get('google_search_engine_id')
+    dataforseo_login = api_keys.get('dataforseo_login')
+    dataforseo_password = api_keys.get('dataforseo_password')
+    use_google_shopping = user_doc.get('use_google_shopping', False)
     
     supplier_price = product['supplier_price_eur']
     amazon_price = None
