@@ -175,11 +175,16 @@ class ApiKeysUpdate(BaseModel):
     google_api_key: Optional[str] = None
     google_search_engine_id: Optional[str] = None
     keepa_api_key: Optional[str] = None
+    dataforseo_login: Optional[str] = None
+    dataforseo_password: Optional[str] = None
 
 class ApiKeysResponse(BaseModel):
     google_api_key_set: bool
     google_search_engine_id_set: bool
     keepa_api_key_set: bool
+    dataforseo_login_set: bool
+    dataforseo_password_set: bool
+    use_google_shopping: bool
 
 class SupplierCreate(BaseModel):
     name: str
