@@ -954,7 +954,10 @@ async def get_api_keys(user: dict = Depends(get_current_user)):
     return ApiKeysResponse(
         google_api_key_set=bool(api_keys.get('google_api_key')),
         google_search_engine_id_set=bool(api_keys.get('google_search_engine_id')),
-        keepa_api_key_set=bool(api_keys.get('keepa_api_key'))
+        keepa_api_key_set=bool(api_keys.get('keepa_api_key')),
+        dataforseo_login_set=bool(api_keys.get('dataforseo_login')),
+        dataforseo_password_set=bool(api_keys.get('dataforseo_password')),
+        use_google_shopping=bool(user.get('use_google_shopping', False))
     )
 
 @api_router.put("/settings/api-keys", response_model=ApiKeysResponse)
@@ -966,6 +969,10 @@ async def update_api_keys(keys: ApiKeysUpdate, user: dict = Depends(get_current_
         update_data['api_keys.google_search_engine_id'] = keys.google_search_engine_id if keys.google_search_engine_id else None
     if keys.keepa_api_key is not None:
         update_data['api_keys.keepa_api_key'] = keys.keepa_api_key if keys.keepa_api_key else None
+    if keys.dataforseo_login is not None:
+        update_data['api_keys.dataforseo_login'] = keys.dataforseo_login if keys.dataforseo_login else None
+    if keys.dataforseo_password is not None:
+        update_data['api_keys.dataforseo_password'] = keys.dataforseo_password if keys.dataforseo_password else None
     
     if update_data:
         await db.users.update_one({'id': user['id']}, {'$set': update_data})
@@ -975,8 +982,23 @@ async def update_api_keys(keys: ApiKeysUpdate, user: dict = Depends(get_current_
     return ApiKeysResponse(
         google_api_key_set=bool(api_keys.get('google_api_key')),
         google_search_engine_id_set=bool(api_keys.get('google_search_engine_id')),
-        keepa_api_key_set=bool(api_keys.get('keepa_api_key'))
+        keepa_api_key_set=bool(api_keys.get('keepa_api_key')),
+        dataforseo_login_set=bool(api_keys.get('dataforseo_login')),
+        dataforseo_password_set=bool(api_keys.get('dataforseo_password')),
+        use_google_shopping=bool(updated_user.get('use_google_shopping', False))
     )
+
+@api_router.put("/settings/google-search-mode")
+async def toggle_google_search_mode(user: dict = Depends(get_current_user)):
+    """Toggle between Google Custom Search and Google Shopping (DataForSEO)"""
+    current_mode = user.get('use_google_shopping', False)
+    new_mode = not current_mode
+    await db.users.update_one({'id': user['id']}, {'$set': {'use_google_shopping': new_mode}})
+    return {
+        'use_google_shopping': new_mode,
+        'mode': 'google_shopping' if new_mode else 'google_search',
+        'message': 'Google Shopping (DataForSEO) activé' if new_mode else 'Google Custom Search activé'
+    }
 
 # ==================== SUPPLIERS ROUTES ====================
 
