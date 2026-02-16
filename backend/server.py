@@ -2740,7 +2740,7 @@ async def compare_catalog_product(
             logger.warning(f"Google Image Search error for {product['name']}: {e}")
     
     # ==================== MOCK DATA FALLBACK ====================
-    has_api_keys = bool(keepa_key) or bool(google_key and google_cx)
+    has_api_keys = bool(keepa_key) or bool(google_key and google_cx) or bool(use_google_shopping and dataforseo_login and dataforseo_password)
     
     if amazon_price is None and google_lowest_price is None and not has_api_keys:
         # No API keys configured at all → use mock data for demo
