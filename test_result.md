@@ -501,6 +501,69 @@ agent_communication:
   - agent: "main"
     message: "NEW FEATURE IMPLEMENTED: Google Search now captures ALL suppliers with prices and product links (not just lowest price). Backend: Modified Google Custom Search to store google_suppliers_results array with supplier_name, url, price, is_lowest flag. Frontend: Added 'Fournisseurs trouvés par Google' section in product detail view showing all suppliers as cards with clickable links and animated badge for lowest price. Please test: 1) POST /api/catalog/compare/{product_id} should return google_suppliers_results array, 2) Frontend catalog page should display all Google suppliers when expanding a product detail."
 
+user_problem_statement: "Test the new DataForSEO Google Shopping integration backend endpoints. Backend runs on http://localhost:8001, all endpoints prefixed with /api."
+
+backend:
+  - task: "DataForSEO API Keys Management - New fields in GET /api/settings/api-keys"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ TESTED SUCCESSFULLY: GET /api/settings/api-keys returns all new DataForSEO fields: dataforseo_login_set (boolean), dataforseo_password_set (boolean), use_google_shopping (boolean). Initial state correctly shows all false values. Backend endpoint working perfectly."
+
+  - task: "DataForSEO Credentials Management - PUT /api/settings/api-keys"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ TESTED SUCCESSFULLY: PUT /api/settings/api-keys accepts dataforseo_login and dataforseo_password fields. Response correctly shows dataforseo_login_set: true, dataforseo_password_set: true after saving credentials. Credential storage working correctly."
+
+  - task: "Google Search Mode Toggle - PUT /api/settings/google-search-mode"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ TESTED SUCCESSFULLY: PUT /api/settings/google-search-mode toggles between Google Search and Google Shopping modes. First call: use_google_shopping: true, mode: 'google_shopping'. Second call: use_google_shopping: false, mode: 'google_search'. Toggle functionality working perfectly with correct response format."
+
+  - task: "Toggle State Persistence - Verify settings persist across requests"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ TESTED SUCCESSFULLY: Toggle state persists correctly across requests. After toggling to Google Shopping mode, GET /api/settings/api-keys reflects use_google_shopping: true. After toggling back to Google Search, GET request shows use_google_shopping: false. Database persistence working correctly."
+
+  - task: "DataForSEO Credentials Clearing - Empty string clears credentials"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ TESTED SUCCESSFULLY: PUT /api/settings/api-keys with dataforseo_login: '' correctly clears credentials. Response shows dataforseo_login_set: false after clearing. Credential clearing functionality working correctly."
+
 user_problem_statement: "Import de catalogue flexible - seuls le prix et l'identifiant (GTIN/EAN) sont obligatoires. Les autres colonnes (Nom, Catégorie, Marque, Image) sont optionnelles et peuvent être matchées si disponibles."
 
 backend:
