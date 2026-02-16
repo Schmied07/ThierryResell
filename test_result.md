@@ -1100,6 +1100,8 @@ test_plan:
 agent_communication:
   - agent: "main"
     message: "PROBLÈME RÉSOLU: 'impossible de charger le catalogue' était dû à des services non démarrés. Backend: manquait xlsxwriter (installé). Frontend: manquait node_modules (yarn install). Services redémarrés avec succès. Backend health check OK. Frontend compilé. L'application est maintenant opérationnelle. L'utilisateur peut tester la page catalogue à http://localhost:3000/catalog"
+  - agent: "main"
+    message: "BUGFIX PRÉVISUALISATION: L'utilisateur rencontrait 'Erreur lors de la prévisualisation' lors de l'upload de fichiers Excel. Logs backend montraient '`Import openpyxl` failed'. Le module openpyxl était installé (v3.1.5) mais manquait sa dépendance et-xmlfile. Solution: réinstallation d'openpyxl qui a installé et-xmlfile. Tests confirmés: pandas.read_excel() avec engine='openpyxl' fonctionne correctement. Backend redémarré. La fonctionnalité de prévisualisation de catalogue devrait maintenant fonctionner."
 
 user_problem_statement: "Quand on fait la recherche sur keepa pour un produit (ex: Gebäckdosen Kindermotiv 3er Set aus Metall), plusieurs résultats apparaissent sur Keepa directement mais l'API de l'application ne renvoie aucune réponse."
 
