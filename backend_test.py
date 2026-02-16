@@ -118,7 +118,7 @@ def test_authentication():
         
         if login_response and login_response.status_code == 200:
             data = login_response.json()
-            auth_token = data.get('access_token')
+            auth_token = data.get('token') or data.get('access_token')
             if auth_token:
                 print(f"✅ SUCCESS: User logged in successfully")
                 return True
