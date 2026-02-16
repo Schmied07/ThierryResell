@@ -2558,7 +2558,18 @@ async def compare_catalog_product(
                 # Build search term for fallback name search
                 brand_part = product.get('brand', '')
                 name_part = product.get('name', '')
-                search_term = f"{brand_part} {name_part}".strip() if brand_part and brand_part != 'Non spécifié' else name_part
+                
+                # Avoid duplicates: if brand is already in the name, don't duplicate it
+                if brand_part and brand_part != 'Non spécifié' and brand_part.lower() not in name_part.lower():
+                    search_term = f"{brand_part} {name_part}".strip()
+                else:
+                    search_term = name_part.strip()
+                
+                # Simplify search term: take only first 50 characters to avoid being too specific
+                if len(search_term) > 50:
+                    search_term = search_term[:50].rsplit(' ', 1)[0]  # Cut at last word boundary
+                
+                logger.info(f"Keepa search term built: '{search_term}' (from brand='{brand_part}', name='{name_part}')")
                 
                 # Multi-domain search: tries FR first, then DE, IT, ES, UK, US
                 keepa_product, found_domain_info = await search_keepa_product_multi_domain(
