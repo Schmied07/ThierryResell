@@ -2868,6 +2868,7 @@ async def compare_catalog_product(
         'gtin': product['gtin'],
         'brand': product['brand'],
         'is_mock_data': is_mock_data,
+        'search_source': search_source or ('google_search' if (google_key and google_cx) else 'mock'),
         # Prices
         'supplier_price_eur': supplier_price,
         'amazon_price_eur': amazon_price,
