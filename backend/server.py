@@ -2546,10 +2546,20 @@ async def compare_catalog_product(
         except Exception as e:
             logger.warning(f"Keepa API error for {product['gtin']}: {e}")
     
-    # ==================== GOOGLE CUSTOM SEARCH (all suppliers with prices) ====================
+    # ==================== GOOGLE SHOPPING / GOOGLE CUSTOM SEARCH ====================
     google_suppliers = []  # List to store all Google suppliers with details
+    search_source = None  # Track which search was used
     
-    if google_key and google_cx:
+    # Branch 1: DataForSEO Google Shopping (if enabled and credentials available)
+    if use_google_shopping and dataforseo_login and dataforseo_password:
+        logger.info(f"Using DataForSEO Google Shopping for {product['name']}")
+        search_source = 'google_shopping'
+        google_lowest_price, google_suppliers = await search_google_shopping_dataforseo(
+            product, dataforseo_login, dataforseo_password
+        )
+    
+    # Branch 2: Google Custom Search (default)
+    elif google_key and google_cx:
         try:
             search_query = f"{product['brand']} {product['name']} prix"
             logger.info(f"Google search query: {search_query}")
