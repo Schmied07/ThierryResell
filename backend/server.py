@@ -2663,10 +2663,10 @@ async def compare_catalog_product(
         except Exception as e:
             logger.warning(f"Google API error for {product['name']}: {e}")
     else:
-        logger.info(f"Google search skipped: google_key={bool(google_key)}, google_cx={bool(google_cx)}")
+        logger.info(f"Google search skipped: google_key={bool(google_key)}, google_cx={bool(google_cx)}, dataforseo={bool(dataforseo_login)}, use_shopping={use_google_shopping}")
     
-    # ==================== GOOGLE IMAGE SEARCH (if product has image_url) ====================
-    if google_key and google_cx and product.get('image_url') and not google_suppliers:
+    # ==================== GOOGLE IMAGE SEARCH (if product has image_url, only for Custom Search mode) ====================
+    if not use_google_shopping and google_key and google_cx and product.get('image_url') and not google_suppliers:
         try:
             image_url = product['image_url']
             logger.info(f"Google Image Search for {product['name']} with image: {image_url}")
