@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { Badge } from "../components/ui/badge";
 import { 
   Key, User, Shield, Check, X, Loader2, 
-  Eye, EyeOff, ExternalLink, AlertCircle
+  Eye, EyeOff, ExternalLink, AlertCircle, ShoppingCart, Search, ToggleLeft, ToggleRight
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -16,22 +16,30 @@ const Settings = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [apiKeysLoading, setApiKeysLoading] = useState(true);
+  const [toggleLoading, setToggleLoading] = useState(false);
   const [showKeys, setShowKeys] = useState({
     google: false,
     googleCx: false,
-    keepa: false
+    keepa: false,
+    dataforseoLogin: false,
+    dataforseoPassword: false
   });
   
   const [apiKeys, setApiKeys] = useState({
     google_api_key: "",
     google_search_engine_id: "",
-    keepa_api_key: ""
+    keepa_api_key: "",
+    dataforseo_login: "",
+    dataforseo_password: ""
   });
 
   const [apiKeysStatus, setApiKeysStatus] = useState({
     google_api_key_set: false,
     google_search_engine_id_set: false,
-    keepa_api_key_set: false
+    keepa_api_key_set: false,
+    dataforseo_login_set: false,
+    dataforseo_password_set: false,
+    use_google_shopping: false
   });
 
   useEffect(() => {
@@ -58,7 +66,9 @@ const Settings = () => {
       setApiKeys({
         google_api_key: "",
         google_search_engine_id: "",
-        keepa_api_key: ""
+        keepa_api_key: "",
+        dataforseo_login: "",
+        dataforseo_password: ""
       });
       toast.success("Clés API mises à jour !");
     } catch (error) {
@@ -83,6 +93,22 @@ const Settings = () => {
     }
   };
 
+  const handleToggleSearchMode = async () => {
+    setToggleLoading(true);
+    try {
+      const response = await api.put("/settings/google-search-mode");
+      setApiKeysStatus(prev => ({
+        ...prev,
+        use_google_shopping: response.data.use_google_shopping
+      }));
+      toast.success(response.data.message);
+    } catch (error) {
+      toast.error("Erreur lors du changement de mode");
+    } finally {
+      setToggleLoading(false);
+    }
+  };
+
   const ApiKeyField = ({ 
     id, 
     label, 
@@ -93,7 +119,8 @@ const Settings = () => {
     isSet, 
     showKey, 
     onToggleShow,
-    keyName 
+    keyName,
+    inputType = "password"
   }) => (
     <div className="space-y-3 p-4 bg-zinc-800/30 rounded-lg border border-zinc-800">
       <div className="flex items-center justify-between">
@@ -118,7 +145,7 @@ const Settings = () => {
           <Input
             id={id}
             data-testid={`${id}-input`}
-            type={showKey ? "text" : "password"}
+            type={showKey ? "text" : inputType}
             value={value}
             onChange={onChange}
             className="bg-zinc-950 border-zinc-700 focus:border-lime-500/50 pr-10"
@@ -157,6 +184,9 @@ const Settings = () => {
       )}
     </div>
   );
+
+  const isGoogleSearchReady = apiKeysStatus.google_api_key_set && apiKeysStatus.google_search_engine_id_set;
+  const isGoogleShoppingReady = apiKeysStatus.dataforseo_login_set && apiKeysStatus.dataforseo_password_set;
 
   return (
     <div className="min-h-screen bg-zinc-950 pt-20 pb-12">
@@ -217,6 +247,93 @@ const Settings = () => {
                   </div>
                 </div>
 
+                {/* ============ Google Search Mode Toggle ============ */}
+                <div className="mb-6 p-5 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-xl">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+                        {apiKeysStatus.use_google_shopping ? (
+                          <ShoppingCart className="w-5 h-5 text-indigo-400" />
+                        ) : (
+                          <Search className="w-5 h-5 text-blue-400" />
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold text-base">Mode de recherche prix</h3>
+                        <p className="text-zinc-400 text-xs mt-0.5">
+                          Choisissez entre Google Custom Search et Google Shopping
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleToggleSearchMode}
+                      disabled={toggleLoading}
+                      className="flex items-center gap-2 transition-all"
+                    >
+                      {toggleLoading ? (
+                        <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
+                      ) : apiKeysStatus.use_google_shopping ? (
+                        <ToggleRight className="w-10 h-10 text-indigo-400 cursor-pointer hover:text-indigo-300 transition-colors" />
+                      ) : (
+                        <ToggleLeft className="w-10 h-10 text-zinc-500 cursor-pointer hover:text-zinc-400 transition-colors" />
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Google Search Card */}
+                    <div className={`p-3 rounded-lg border-2 transition-all ${
+                      !apiKeysStatus.use_google_shopping
+                        ? 'border-blue-500/50 bg-blue-500/10 shadow-lg shadow-blue-500/10'
+                        : 'border-zinc-700/50 bg-zinc-800/30 opacity-60'
+                    }`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Search className="w-4 h-4 text-blue-400" />
+                        <span className="text-white text-sm font-semibold">Google Search</span>
+                        {!apiKeysStatus.use_google_shopping && (
+                          <Badge className="bg-blue-500/20 text-blue-300 text-[10px] px-1.5 py-0">ACTIF</Badge>
+                        )}
+                      </div>
+                      <p className="text-zinc-400 text-xs">Recherche web classique via Custom Search API</p>
+                      <div className="mt-1.5">
+                        <Badge variant="outline" className={`text-[10px] ${isGoogleSearchReady ? 'border-lime-500/40 text-lime-400' : 'border-zinc-700 text-zinc-500'}`}>
+                          {isGoogleSearchReady ? '✓ Clés configurées' : '✗ Clés manquantes'}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Google Shopping Card */}
+                    <div className={`p-3 rounded-lg border-2 transition-all ${
+                      apiKeysStatus.use_google_shopping
+                        ? 'border-indigo-500/50 bg-indigo-500/10 shadow-lg shadow-indigo-500/10'
+                        : 'border-zinc-700/50 bg-zinc-800/30 opacity-60'
+                    }`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <ShoppingCart className="w-4 h-4 text-indigo-400" />
+                        <span className="text-white text-sm font-semibold">Google Shopping</span>
+                        {apiKeysStatus.use_google_shopping && (
+                          <Badge className="bg-indigo-500/20 text-indigo-300 text-[10px] px-1.5 py-0">ACTIF</Badge>
+                        )}
+                      </div>
+                      <p className="text-zinc-400 text-xs">Prix marchands via DataForSEO API</p>
+                      <div className="mt-1.5">
+                        <Badge variant="outline" className={`text-[10px] ${isGoogleShoppingReady ? 'border-lime-500/40 text-lime-400' : 'border-zinc-700 text-zinc-500'}`}>
+                          {isGoogleShoppingReady ? '✓ Identifiants configurés' : '✗ Identifiants manquants'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  {apiKeysStatus.use_google_shopping && !isGoogleShoppingReady && (
+                    <div className="mt-3 p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                      <p className="text-amber-300 text-xs">
+                        Google Shopping activé mais identifiants DataForSEO non configurés. Ajoutez-les ci-dessous.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {apiKeysLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-6 h-6 animate-spin text-lime-400" />
@@ -224,10 +341,13 @@ const Settings = () => {
                 ) : (
                   <form onSubmit={handleSaveApiKeys} className="space-y-6">
                     {/* Google API Key */}
-                    <div className="space-y-4">
+                    <div className={`space-y-4 transition-opacity ${apiKeysStatus.use_google_shopping ? 'opacity-50' : ''}`}>
                       <h3 className="text-lg font-semibold text-zinc-50 flex items-center gap-2">
                         <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
                         Google Cloud APIs
+                        {apiKeysStatus.use_google_shopping && (
+                          <Badge className="bg-zinc-700 text-zinc-400 text-[10px]">Désactivé — Google Shopping actif</Badge>
+                        )}
                       </h3>
                       
                       <ApiKeyField
@@ -257,6 +377,50 @@ const Settings = () => {
                       />
                     </div>
 
+                    {/* DataForSEO API (Google Shopping) */}
+                    <div className={`space-y-4 transition-opacity ${!apiKeysStatus.use_google_shopping ? 'opacity-50' : ''}`}>
+                      <h3 className="text-lg font-semibold text-zinc-50 flex items-center gap-2">
+                        <ShoppingCart className="w-5 h-5 text-indigo-400" />
+                        DataForSEO — Google Shopping
+                        {!apiKeysStatus.use_google_shopping && (
+                          <Badge className="bg-zinc-700 text-zinc-400 text-[10px]">Désactivé — Google Search actif</Badge>
+                        )}
+                      </h3>
+                      <p className="text-zinc-500 text-xs -mt-2">
+                        Accédez aux prix des marchands Google Shopping. Créez un compte sur{' '}
+                        <a href="https://app.dataforseo.com/register" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline">
+                          dataforseo.com
+                        </a>
+                      </p>
+                      
+                      <ApiKeyField
+                        id="dataforseo-login"
+                        label="DataForSEO Login"
+                        description="Email / login de votre compte DataForSEO"
+                        docsUrl="https://app.dataforseo.com/api-access"
+                        value={apiKeys.dataforseo_login}
+                        onChange={(e) => setApiKeys({ ...apiKeys, dataforseo_login: e.target.value })}
+                        isSet={apiKeysStatus.dataforseo_login_set}
+                        showKey={showKeys.dataforseoLogin}
+                        onToggleShow={() => setShowKeys({ ...showKeys, dataforseoLogin: !showKeys.dataforseoLogin })}
+                        keyName="dataforseo_login"
+                        inputType="text"
+                      />
+
+                      <ApiKeyField
+                        id="dataforseo-password"
+                        label="DataForSEO Password"
+                        description="Mot de passe API de votre compte DataForSEO"
+                        docsUrl="https://app.dataforseo.com/api-access"
+                        value={apiKeys.dataforseo_password}
+                        onChange={(e) => setApiKeys({ ...apiKeys, dataforseo_password: e.target.value })}
+                        isSet={apiKeysStatus.dataforseo_password_set}
+                        showKey={showKeys.dataforseoPassword}
+                        onToggleShow={() => setShowKeys({ ...showKeys, dataforseoPassword: !showKeys.dataforseoPassword })}
+                        keyName="dataforseo_password"
+                      />
+                    </div>
+
                     {/* Keepa API Key */}
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold text-zinc-50 flex items-center gap-2">
@@ -281,7 +445,7 @@ const Settings = () => {
                     <Button
                       type="submit"
                       data-testid="save-api-keys-btn"
-                      disabled={loading || (!apiKeys.google_api_key && !apiKeys.google_search_engine_id && !apiKeys.keepa_api_key)}
+                      disabled={loading || (!apiKeys.google_api_key && !apiKeys.google_search_engine_id && !apiKeys.keepa_api_key && !apiKeys.dataforseo_login && !apiKeys.dataforseo_password)}
                       className="w-full bg-lime-400 text-zinc-950 hover:bg-lime-500 font-bold shadow-[0_0_20px_rgba(163,230,53,0.2)]"
                     >
                       {loading ? (
