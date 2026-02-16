@@ -1419,92 +1419,35 @@ async def search_by_text(request: ProductSearchRequest, user: dict = Depends(get
     amazon_price = None
     
     if keepa_key:
-        # Try real Keepa API - use /search for text-based product search
+        # Try real Keepa API - multi-domain search for text-based product search
         try:
             async with httpx.AsyncClient() as http_client:
-                # Search for product on Keepa by keyword
-                response = await http_client.get(
-                    "https://api.keepa.com/search",
-                    params={
-                        "key": keepa_key,
-                        "domain": 4,  # Amazon.fr
-                        "type": "product",
-                        "term": request.query
-                    },
-                    timeout=30
+                # Multi-domain search: tries FR first, then DE, IT, ES, UK, US
+                keepa_product_found, found_domain = await search_keepa_product_multi_domain(
+                    http_client=http_client,
+                    keepa_key=keepa_key,
+                    gtin=None,  # Text search, no GTIN
+                    search_term=request.query,
+                    primary_domain=4  # Amazon.fr first
                 )
-                logger.info(f"Keepa search response status: {response.status_code}")
-                if response.status_code == 200:
-                    data = response.json()
-                    asin_list = data.get('asinList', [])
+                
+                if keepa_product_found:
+                    # Extract price using helper function
+                    local_price = extract_keepa_price(keepa_product_found)
+                    if local_price is not None:
+                        exchange_rate = found_domain.get('exchange_rate', 1.0) if found_domain else 1.0
+                        amazon_price = round(local_price * exchange_rate, 2)
                     
-                    # The search endpoint returns ASINs, then query for product details
-                    if asin_list and len(asin_list) > 0:
-                        # Get product details for the first ASIN
-                        detail_response = await http_client.get(
-                            "https://api.keepa.com/product",
-                            params={
-                                "key": keepa_key,
-                                "domain": 4,
-                                "asin": asin_list[0],
-                                "stats": 1,
-                            },
-                            timeout=30
-                        )
-                        if detail_response.status_code == 200:
-                            detail_data = detail_response.json()
-                            if detail_data.get('products') and len(detail_data['products']) > 0:
-                                product_data = detail_data['products'][0]
-                                stats = product_data.get('stats', {})
-                                current_prices = stats.get('current', [])
-                                
-                                # Try Amazon price (index 0), then 3rd party new (index 1)
-                                if current_prices and len(current_prices) > 0:
-                                    if current_prices[0] is not None and current_prices[0] > 0:
-                                        amazon_price = current_prices[0] / 100.0
-                                    elif len(current_prices) > 1 and current_prices[1] is not None and current_prices[1] > 0:
-                                        amazon_price = current_prices[1] / 100.0
-                                
-                                # Fallback: try csv price history
-                                if amazon_price is None:
-                                    csv_data = product_data.get('csv', [])
-                                    for csv_idx in [0, 1]:  # Amazon, then 3rd party
-                                        if csv_data and len(csv_data) > csv_idx and csv_data[csv_idx]:
-                                            prices_array = csv_data[csv_idx]
-                                            for i in range(len(prices_array) - 1, 0, -2):
-                                                if prices_array[i] is not None and prices_array[i] > 0:
-                                                    amazon_price = prices_array[i] / 100.0
-                                                    break
-                                        if amazon_price is not None:
-                                            break
-                                
-                                # Fallback: buyBoxPrice
-                                if amazon_price is None:
-                                    buy_box = stats.get('buyBoxPrice', -1)
-                                    if buy_box is not None and buy_box > 0:
-                                        amazon_price = buy_box / 100.0
-                                
-                                keepa_data = {
-                                    'asin': product_data.get('asin', ''),
-                                    'title': product_data.get('title', request.query),
-                                    'current_price': amazon_price,
-                                    'mock_data': False
-                                }
-                                logger.info(f"Keepa found product: {product_data.get('title', 'N/A')} - Price: €{amazon_price}")
+                    domain_name = found_domain.get('name', 'unknown') if found_domain else 'unknown'
+                    keepa_data = {
+                        'asin': keepa_product_found.get('asin', ''),
+                        'title': keepa_product_found.get('title', request.query),
+                        'current_price': amazon_price,
+                        'mock_data': False,
+                        'source_domain': domain_name
+                    }
+                    logger.info(f"Keepa found product: {keepa_product_found.get('title', 'N/A')} - Price: €{amazon_price} (from {domain_name})")
                     
-                    # If search returned products directly (older API format)
-                    if not keepa_data and data.get('products'):
-                        product_data = data['products'][0]
-                        stats = product_data.get('stats', {})
-                        current_prices = stats.get('current', [])
-                        if current_prices and len(current_prices) > 0 and current_prices[0] is not None and current_prices[0] > 0:
-                            amazon_price = current_prices[0] / 100.0
-                        keepa_data = {
-                            'asin': product_data.get('asin', ''),
-                            'title': product_data.get('title', request.query),
-                            'current_price': amazon_price,
-                            'mock_data': False
-                        }
         except Exception as e:
             logger.warning(f"Keepa API error: {e}")
     
