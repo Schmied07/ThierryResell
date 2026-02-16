@@ -1057,7 +1057,7 @@ agent_communication:
 user_problem_statement: "impossible de charger le catalogue, problème de visualisation"
 
 backend:
-  - task: "Fix missing dependencies - xlsxwriter"
+  - task: "Fix missing dependencies - xlsxwriter and openpyxl"
     implemented: true
     working: true
     file: "backend/requirements.txt"
@@ -1068,6 +1068,9 @@ backend:
       - working: true
         agent: "main"
         comment: "BUGFIX: Le backend ne démarrait pas avec l'erreur 'ModuleNotFoundError: No module named xlsxwriter'. xlsxwriter était dans requirements.txt mais pas installé. Solution: pip install xlsxwriter. Backend démarre maintenant correctement avec health check OK."
+      - working: true
+        agent: "main"
+        comment: "BUGFIX SUPPLÉMENTAIRE: Erreur lors de la prévisualisation avec message '`Import openpyxl` failed'. Le module openpyxl était installé mais manquait sa dépendance et-xmlfile. Solution: pip install openpyxl (qui a installé et-xmlfile). Test confirmé: pandas peut maintenant lire les fichiers Excel avec engine='openpyxl'. Backend redémarré avec succès."
 
 frontend:
   - task: "Fix missing node dependencies - craco"
