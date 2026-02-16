@@ -1056,6 +1056,19 @@ agent_communication:
 
 user_problem_statement: "Améliorer l'affichage du catalogue: 1) Afficher les images des produits dans une colonne séparée en première position 2) Afficher les noms de produits en entier sans troncature 3) Les images ne sont pas obligatoires"
 
+backend:
+  - task: "Catalog preview - openpyxl dependency fix"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "BUGFIX: Installed et-xmlfile dependency for openpyxl. The catalog preview was failing with 'Import openpyxl failed' error. Now openpyxl imports successfully and pandas can read Excel files."
+
 frontend:
   - task: "Colonne Image séparée - Affichage des images en première position"
     implemented: true
