@@ -1054,6 +1054,50 @@ agent_communication:
   - agent: "testing"
     message: "✅ FLEXIBLE CATALOG IMPORT FEATURE TESTING COMPLETE - ALL TESTS PASSED: 1) Authentication working with flextest@test.com test user. 2) POST /api/catalog/preview with /app/catalog_sample.xlsx returns required_fields=['GTIN', 'Price'] (NOT 5 fields) and optional_fields includes Name, Category, Brand, Image as expected. 3) Created minimal Excel file with just EAN and prix_achat columns. 4) POST /api/catalog/import with column_mapping_json={'GTIN': 'EAN', 'Price': 'prix_achat'} successfully imports 2 products (8718951388574 and 3014260033279). 5) GET /api/catalog/products verified all imported products have correct 'Non spécifié' defaults for unmapped Name, Category, Brand fields. Prices correctly converted from GBP to EUR (5.99→6.89€, 3.50→4.02€). FLEXIBLE CATALOG IMPORT FEATURE IS FULLY WORKING - only GTIN and Price are required, optional fields get proper defaults."
 
+user_problem_statement: "impossible de charger le catalogue, problème de visualisation"
+
+backend:
+  - task: "Fix missing dependencies - xlsxwriter"
+    implemented: true
+    working: true
+    file: "backend/requirements.txt"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "BUGFIX: Le backend ne démarrait pas avec l'erreur 'ModuleNotFoundError: No module named xlsxwriter'. xlsxwriter était dans requirements.txt mais pas installé. Solution: pip install xlsxwriter. Backend démarre maintenant correctement avec health check OK."
+
+frontend:
+  - task: "Fix missing node dependencies - craco"
+    implemented: true
+    working: true
+    file: "frontend/package.json"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "BUGFIX: Le frontend ne démarrait pas avec l'erreur 'craco: not found'. Les node_modules n'étaient pas installés. Solution: yarn install pour installer toutes les dépendances. Frontend compile maintenant avec succès (warnings ESLint mineurs non-bloquants sur useEffect dependencies)."
+
+metadata:
+  created_by: "main_agent"
+  version: "5.0"
+  test_sequence: 0
+  run_ui: false
+
+test_plan:
+  current_focus: []
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "PROBLÈME RÉSOLU: 'impossible de charger le catalogue' était dû à des services non démarrés. Backend: manquait xlsxwriter (installé). Frontend: manquait node_modules (yarn install). Services redémarrés avec succès. Backend health check OK. Frontend compilé. L'application est maintenant opérationnelle. L'utilisateur peut tester la page catalogue à http://localhost:3000/catalog"
+
 user_problem_statement: "Quand on fait la recherche sur keepa pour un produit (ex: Gebäckdosen Kindermotiv 3er Set aus Metall), plusieurs résultats apparaissent sur Keepa directement mais l'API de l'application ne renvoie aucune réponse."
 
 backend:
